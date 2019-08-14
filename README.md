@@ -49,6 +49,8 @@ npm install
 
 ```js
 import {Encoder} from 'qram';
+// user selected generator
+import QRCode from 'qrcode';
 
 // some data to encode (arbitrarily large)
 const data = new Uint8Array([1, 2, 3]);
@@ -56,12 +58,13 @@ const data = new Uint8Array([1, 2, 3]);
 // Note: Supported formats for the qr-codes include:
 // `image`: will return an Image instance for each qr-code
 // `url`: will return a data URL for each qr-code
-const encoder = new Encoder({data, format: 'image'});
+const encoder = new Encoder({data, format: 'url'});
 
-// TODO: consider allowing a different driver for generating the
-// individual qr-codes
-//const driver = data => (appropriate format)
-//encoder.use(driver);
+// set the qr-code generator engine for generating the individual qr-codes
+const textEncoder = new TextEncoder();
+const generator = ({data, format}) =>
+  QRCode.toDataURL(textEncoder.encode(data));
+encoder.use('generator', generator);
 
 // get a timer for managing frame rate
 // TODO: add option to progressively reduce fps after internally calculated
@@ -83,7 +86,7 @@ while(true) {
     break;
   }
 
-  // TODO: the value is an image, display it, e.g., draw on a Canvas
+  // TODO: the value is an image/data URL, display it, e.g., draw on a Canvas
 
   // manage your frame rate
   // Note: `timer` internally uses `requestAnimationFrame`, if available, to
@@ -107,12 +110,14 @@ as a Uint8Array.
 
 ```js
 import {Decoder} from 'qram';
+// user selected reader
+import jsQR from 'jsqr';
 
 const decoder = new Decoder();
 
-// use the selected driver
-const driver = image => jsQr.read(image);
-decoder.use(driver);
+// use the selected reader
+const reader = ({imageData, width, height}) => jsQr(imageData, width, height);
+decoder.use('reader', reader);
 
 // get a video stream
 const video = document.querySelector('video');
