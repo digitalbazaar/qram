@@ -1,5 +1,5 @@
 # qram
-Cram arbitrarily large data into multiple streaming QR-codes
+Cram arbitrarily large data into, e.g., multiple streaming QR-codes
 
 ## Table of Contents
 
@@ -12,15 +12,26 @@ Cram arbitrarily large data into multiple streaming QR-codes
 
 ## Background
 
+The primary purpose of this library is to allow arbitrarily large data to
+be transmitted using QR codes. It uses [LT Codes][] to pack blocks of data
+into packets for efficient delivery via a lossy medium (such as QR codes). The
+means of delivery is decoupled from this library so that the data can be
+transmitted using any means the programmer is capable to employ. However,
+from here forward the examples and documentation focus on delivering the
+data via QR codes.
+
 QR-codes can be used to represent relatively small data (e.g., ~7k chars
-or ~3k binary data). This library enables the user to represent arbitrarily
-large data using multiple QR-codes. This means that larger data can be
-transferred from one device to another using QR-codes.
+or ~3k binary data). This library enables arbitrarily large data to be
+transferred from one device to another using QR-codes. The term "arbitrarily"
+is used loosely here as there will always be various other physical limitations
+(e.g., RAM, time, etc.). Extremely large data can be broken into chunks before
+being passed to this library -- but transfer time will always be a limiting
+factor.
 
-This library provides a mechanism for reading a stream of QR-codes that can be displayed as a video to a QR-code scanner. The QR-codes will be efficiently
-repeated until all of the data has been successfully read by the scanner.
-
-Of course, the larger the data, the longer it will take to transfer.
+This README demonstrates how to setup an encoder and decoder for a stream of
+QR-codes that can be displayed as a video to a QR-code scanner. The QR-codes
+will be efficiently repeated until all of the data has been successfully read
+by the scanner.
 
 This project reuses some of the ideas from a similar project written
 in Go, [TXQR][].
@@ -49,44 +60,43 @@ npm install
 
 ```js
 import {Encoder} from 'qram';
-// user selected generator
+// user selected qr-code generator
 import QRCode from 'qrcode';
 
 // some data to encode (arbitrarily large)
 const data = new Uint8Array([1, 2, 3]);
 
-// Note: Supported formats for the qr-codes include:
-// `image`: will return an Image instance for each qr-code
-// `url`: will return a data URL for each qr-code
-const encoder = new Encoder({data, format: 'url'});
-
-// set the qr-code generator engine for generating the individual qr-codes
-const textEncoder = new TextEncoder();
-const generator = ({data, format}) =>
-  QRCode.toDataURL(textEncoder.encode(data));
-encoder.use('generator', generator);
+// create encoder that will produce packets of data for decoder(s)
+const encoder = new Encoder({data});
 
 // get a timer for managing frame rate
 // TODO: add option to progressively reduce fps after internally calculated
 // expected transfer interval
 const timer = encoder.getTimer({fps: 30});
 
-// get a video stream that efficiently delivers the data as qr-codes; the
-// stream will indefinitely generate qr-codes to be read by a scanner; stop
-// reading from the stream once the scanner has received all of the data
+// get the stream of packets to efficiently deliver the data to decoder(s)
+// stream will indefinitely generate packets to be decoded; stop reading
+// from the stream once the decoder has received all of the data
 const stream = await encoder.getReadableStream();
 
-// keep reading and displaying the images until the scanning device has
-// received the data
+// create a function to display the packet as a qr-code
+const textEncoder = new TextEncoder();
+const canvas = document.querySelector('canvas');
+const display = ({packet}) =>
+  QRCode.toCanvas(canvas, textEncoder.encode(packet.payload));
+
+// keep reading and displaying the packets as qr-code images until the decoder
+// has received the data
 const reader = stream.getReader();
 while(true) {
-  // read the next value
-  const {value, done} = await reader.read();
+  // read the next packet
+  const {value: packet, done} = await reader.read();
   if(done) {
     break;
   }
 
-  // TODO: the value is an image/data URL, display it, e.g., draw on a Canvas
+  // display the packet as a qr-code for scanning
+  await display({packet});
 
   // manage your frame rate
   // Note: `timer` internally uses `requestAnimationFrame`, if available, to
@@ -97,7 +107,7 @@ while(true) {
   await timer.nextFrame();
 }
 
-// ... somewhere out-of-band cancel the stream once the receiver has the data
+// ... somewhere out-of-band cancel the stream once the decoder has the data
 stream.cancel();
 ```
 
@@ -115,16 +125,20 @@ import jsQR from 'jsqr';
 
 const decoder = new Decoder();
 
-// use the selected reader
-const reader = ({imageData, width, height}) => jsQr(imageData, width, height);
-decoder.use('reader', reader);
-
-// get a video stream
+// get a video element to read images of qr-codes from
 const video = document.querySelector('video');
 
 // use `requestAnimationFrame` so that scanning will not happen unless the
 // user has focused the window/tab displaying the qr-code stream
-requestAnimationFrame(() => decoder.enqueue(video));
+requestAnimationFrame(() => {
+  // use qram helper to get image data
+  const imageData = qram.getImageData(video);
+  // use qr-code reader of choice to get Uint8Array or Uint8ClampedArray
+  // representing the packet
+  const {binaryData} = jsQr(imageData.data, imageData.width, imageData.height);
+  // enqueue the packet payload for decoding
+  decoder.enqueue(binaryData);
+});
 
 try {
   // result found
@@ -150,3 +164,4 @@ Digital Bazaar: support@digitalbazaar.com
 [jsQR]: https://github.com/cozmo/jsQR
 [Shape Detection API]: https://wicg.github.io/shape-detection-api/
 [TXQR]: https://github.com/divan/txqr
+[LT Codes]: https://en.wikipedia.org/wiki/Luby_transform_code
