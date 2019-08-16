@@ -25,8 +25,9 @@ or ~3k binary data). This library enables arbitrarily large data to be
 transferred from one device to another using QR-codes. The term "arbitrarily"
 is used loosely here as there will always be various other physical limitations
 (e.g., RAM, time, etc.). Extremely large data can be broken into chunks before
-being passed to this library -- but transfer time will always be a limiting
-factor.
+being passed to this library, but, not only will transfer time will always be
+a limiting factor, constructing a viable transfer system where there is little
+to no feedback from the decoder would be challenging.
 
 This README demonstrates how to setup an encoder and decoder for a stream of
 QR-codes that can be displayed as a video to a QR-code scanner. The QR-codes
@@ -72,22 +73,23 @@ const encoder = new Encoder({data});
 // get a timer for managing frame rate
 // TODO: add option to progressively reduce fps after internally calculated
 // expected transfer interval
-const timer = encoder.getTimer({fps: 30});
+const timer = encoder.createTimer({fps: 30});
 
 // get the stream of packets to efficiently deliver the data to decoder(s)
 // stream will indefinitely generate packets to be decoded; stop reading
 // from the stream once the decoder has received all of the data
-const stream = await encoder.getReadableStream();
+const stream = await encoder.createReadableStream();
 
 // create a function to display the packet as a qr-code
 const textEncoder = new TextEncoder();
 const canvas = document.querySelector('canvas');
 const display = ({packet}) =>
-  QRCode.toCanvas(canvas, textEncoder.encode(packet.payload));
+  QRCode.toCanvas(canvas, textEncoder.encode(packet.data));
 
 // keep reading and displaying the packets as qr-code images until the decoder
 // has received the data
 const reader = stream.getReader();
+timer.start();
 while(true) {
   // read the next packet
   const {value: packet, done} = await reader.read();
@@ -136,8 +138,8 @@ requestAnimationFrame(() => {
   // use qr-code reader of choice to get Uint8Array or Uint8ClampedArray
   // representing the packet
   const {binaryData} = jsQr(imageData.data, imageData.width, imageData.height);
-  // enqueue the packet payload for decoding
-  decoder.enqueue(binaryData);
+  // enqueue the packet data for decoding, ignoring any errors
+  decoder.enqueue(binaryData).catch(() => {});
 });
 
 try {

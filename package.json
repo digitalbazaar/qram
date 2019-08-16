@@ -11,11 +11,17 @@
     "lint": "eslint ."
   },
   "files": [
+    "crypto-browser.js",
+    "crypto.js",
     "index.js",
-    "main.js"
+    "main.js",
+    "util.js",
+    "util-browser.js"
   ],
   "dependencies": {
-    "esm": "^3.2.22"
+    "esm": "^3.2.22",
+    "isomorphic-webcrypto": "^1.6.1",
+    "web-streams-polyfill": "^2.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.4.3",
@@ -59,7 +65,10 @@
   },
   "homepage": "https://github.com/digitalbazaar/qram",
   "module": "main.js",
-  "browser": {},
+  "browser": {
+    "./crypto.js": "./crypto-browser.js",
+    "./util.js": "./util-browser.js"
+  },
   "engines": {
     "node": ">=8.6.0"
   }
