@@ -133,11 +133,16 @@ export class Packet {
     }
     header.digest = new Uint8Array(
       data.buffer, data.byteOffset + offset - 1, 2 + SHA_256_LENGTH);
-    header.blockSize = dv.getUint32(offset += 1 + SHA_256_LENGTH);
+    header.blockSize = dv.getUint32(offset += (1 + SHA_256_LENGTH));
     offset += 4;
     const headerSize = offset;
 
     // verify payload size
+    if(header.blockSize !== (data.length - offset)) {
+      throw new Error(
+        `Block size (${header.blockSize}) does not match packet payload ` +
+        `size (${data.length - offset}).`);
+    }
     const payload = new Uint8Array(
       data.buffer, data.byteOffset + offset, header.blockSize);
     const packetSize = headerSize + payload.length;
