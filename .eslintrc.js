@@ -11,6 +11,7 @@ module.exports = {
     TextDecoder: true,
     TextEncoder: true,
     Uint8Array: true,
+    document: true,
     requestAnimationFrame: true
   }
 }
