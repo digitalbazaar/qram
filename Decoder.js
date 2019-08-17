@@ -21,8 +21,10 @@ export class Decoder {
 
   async enqueue(data) {
     if(!this.decoding) {
-      // drop data; not decoding
-      return;
+      // not decoding; abort
+      const error = new Error('Decoding not started or canceled.');
+      error.name = 'AbortError';
+      throw error;
     }
 
     const {blocks} = this;
@@ -43,8 +45,8 @@ export class Decoder {
     if(header.indexes.length === 1) {
       const [index] = header.indexes;
       if(blocks.has(index)) {
-        // nothing new
-        return;
+        // nothing new, return not done yet
+        return false;
       }
       // new block!
       const block = this._addBlock({index, block: packet.payload});
@@ -53,7 +55,8 @@ export class Decoder {
       // reduce packets to blocks
       const newBlockIndexes = [index];
       this._reduce({newBlockIndexes});
-      return;
+      // return whether or not decoding has finished
+      return !this.decoding;
     }
 
     // record packet
@@ -79,12 +82,17 @@ export class Decoder {
       // reduce packets to blocks
       this._reduce({newBlockIndexes});
     }
+
+    // return whether or not decoding has finished
+    return !this.decoding;
   }
 
   cancel() {
     this.decoding = false;
     if(this._reject) {
-      this._reject(new Error('Decoding canceled.'));
+      const error = new Error('Decoding canceled.');
+      error.name = 'AbortError';
+      this._reject(error);
     }
     this._resolve = this._reject = null;
     this.data = this.current = null;
@@ -156,8 +164,10 @@ export class Decoder {
     const {current, data} = this;
     const {totalSize} = current;
     const result = new Uint8Array(data.buffer, data.byteOffset, totalSize);
+    // clear `_reject` to prevent throwing an AbortError in `cancel`
     this._reject = null;
     const {_resolve: resolve} = this;
+    // reuse `cancel` to clear state
     this.cancel();
     resolve(result);
   }

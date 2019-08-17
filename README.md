@@ -132,14 +132,18 @@ const video = document.querySelector('video');
 
 // use `requestAnimationFrame` so that scanning will not happen unless the
 // user has focused the window/tab displaying the qr-code stream
-requestAnimationFrame(() => {
+requestAnimationFrame(function enqueue() {
   // use qram helper to get image data
   const imageData = qram.getImageData(video);
   // use qr-code reader of choice to get Uint8Array or Uint8ClampedArray
   // representing the packet
   const {binaryData} = jsQr(imageData.data, imageData.width, imageData.height);
   // enqueue the packet data for decoding, ignoring any errors
-  decoder.enqueue(binaryData).catch(() => {});
+  // and rescheduling until done or aborted
+  decoder.enqueue(binaryData)
+    .then(done => done ? null : requestAnimationFrame(enqueue))
+    .catch(e => e.name === 'AbortError' ?
+      null : requestAnimationFrame(enqueue));
 });
 
 try {

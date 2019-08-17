@@ -29,7 +29,11 @@ const {Decoder, Encoder} = require('./index.js');
     //console.log('packet', packetCount);
     const {value: packet} = await reader.read();
     //console.log('packet', packet.header);
-    decoder.enqueue(packet.data).catch(e => console.error(e));
+    try {
+      stop = await decoder.enqueue(packet.data);
+    } catch(e) {
+      e => console.error(e);
+    }
     //console.log('awaiting timer...');
     //await timer.nextFrame();
     //console.log('timer done');
