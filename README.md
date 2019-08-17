@@ -81,10 +81,10 @@ const timer = encoder.createTimer({fps: 30});
 const stream = await encoder.createReadableStream();
 
 // create a function to display the packet as a qr-code
-const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 const canvas = document.querySelector('canvas');
 const display = ({packet}) =>
-  QRCode.toCanvas(canvas, textEncoder.encode(packet.data));
+  QRCode.toCanvas(canvas, textDecoder.decode(packet.data));
 
 // keep reading and displaying the packets as qr-code images until the decoder
 // has received the data
