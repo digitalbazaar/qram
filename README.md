@@ -63,6 +63,8 @@ npm install
 import {Encoder} from 'qram';
 // user selected qr-code generator
 import QRCode from 'qrcode';
+// for converting binary data to text
+import * as base64url from 'base64url-universal';
 
 // some data to encode (arbitrarily large)
 const data = new Uint8Array([1, 2, 3]);
@@ -81,10 +83,9 @@ const timer = encoder.createTimer({fps: 30});
 const stream = await encoder.createReadableStream();
 
 // create a function to display the packet as a qr-code
-const textDecoder = new TextDecoder();
 const canvas = document.querySelector('canvas');
 const display = ({packet}) =>
-  QRCode.toCanvas(canvas, textDecoder.decode(packet.data));
+  QRCode.toCanvas(canvas, base64url.encode(packet.data));
 
 // keep reading and displaying the packets as qr-code images until the decoder
 // has received the data
@@ -124,6 +125,8 @@ as a Uint8Array.
 import {Decoder} from 'qram';
 // user selected reader
 import jsQR from 'jsqr';
+// for converting text to binary data
+import * as base64url from 'base64url-universal';
 
 const decoder = new Decoder();
 
@@ -137,10 +140,10 @@ requestAnimationFrame(function enqueue() {
   const imageData = qram.getImageData(video);
   // use qr-code reader of choice to get Uint8Array or Uint8ClampedArray
   // representing the packet
-  const {binaryData} = jsQr(imageData.data, imageData.width, imageData.height);
+  const {data: text} = jsQr(imageData.data, imageData.width, imageData.height);
   // enqueue the packet data for decoding, ignoring any errors
   // and rescheduling until done or aborted
-  decoder.enqueue(binaryData)
+  decoder.enqueue(base64url.decode(text)
     .then(done => done ? null : requestAnimationFrame(enqueue))
     .catch(e => e.name === 'AbortError' ?
       null : requestAnimationFrame(enqueue));
