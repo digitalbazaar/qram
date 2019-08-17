@@ -4,12 +4,12 @@ const {Decoder, Encoder} = require('./index.js');
 (async () => {
   //const size = 1024 * 100;
   //const size = 1024 * 1024 * 10;
-  const size = 1024 * 100;
+  const size = 1024 * 4;
   const data = new Uint8Array(size);
   //const data = new Uint8Array([1, 2, 3]);
   //crypto.getRandomValues(data);
 
-  const encoder = new Encoder({data, blockSize: 1600});
+  const encoder = new Encoder({data, blockSize: 1024});
   const timer = encoder.createTimer({fps: 30});
 
   let packetCount = 0;
