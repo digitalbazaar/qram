@@ -68,7 +68,7 @@ export class Decoder {
     let recorded = false;
     header.indexes.forEach(i => {
       if(blocks.has(i)) {
-        return;
+        return this.progress;
       }
       recorded = true;
       const packetSet = this.packets.get(i);
