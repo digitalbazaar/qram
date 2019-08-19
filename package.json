@@ -11,8 +11,14 @@
     "lint": "eslint ."
   },
   "files": [
+    "Decoder.js",
+    "Encoder.js",
+    "Packet.js",
+    "RandomDegree.js",
+    "Timer.js",
     "crypto-browser.js",
     "crypto.js",
+    "distributions.js",
     "index.js",
     "main.js",
     "util.js",
