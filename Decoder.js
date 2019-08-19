@@ -45,14 +45,15 @@ export class Decoder {
       this.data = new Uint8Array(this.blockCount * blockSize);
     }
 
-    this.progress.receivedPackets++;
+    const {progress} = this;
+    progress.receivedPackets++;
 
     // handle case where packet has a single block
     if(header.indexes.length === 1) {
       const [index] = header.indexes;
       if(blocks.has(index)) {
         // nothing new, return current progress
-        return this.progress;
+        return progress;
       }
       // new block!
       const block = this._addBlock({index, block: packet.payload});
@@ -61,14 +62,14 @@ export class Decoder {
       // reduce packets to blocks
       const newBlockIndexes = [index];
       this._reduce({newBlockIndexes});
-      return this.progress;
+      return progress;
     }
 
     // record packet
     let recorded = false;
     header.indexes.forEach(i => {
       if(blocks.has(i)) {
-        return this.progress;
+        return progress;
       }
       recorded = true;
       const packetSet = this.packets.get(i);
@@ -88,7 +89,7 @@ export class Decoder {
       this._reduce({newBlockIndexes});
     }
 
-    return this.progress;
+    return progress;
   }
 
   cancel() {
@@ -146,7 +147,7 @@ export class Decoder {
       if(packetSet) {
         packetSet.delete(packet);
       }
-      if(result) {
+      if(result && !blocks.has(result.index)) {
         // got a new block!
         this._addBlock(result);
         newBlockIndexes.push(result.index);
@@ -176,5 +177,6 @@ export class Decoder {
     // reuse `cancel` to clear state
     this.cancel();
     resolve({...progress, data: result});
+    return progress;
   }
 }
