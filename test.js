@@ -12,25 +12,23 @@ const {Decoder, Encoder} = require('./index.js');
   const encoder = new Encoder({data, blockSize: 1024});
   const timer = encoder.createTimer({fps: 30});
 
-  let packetCount = 0;
   const decoder = new Decoder();
-  let stop = false;
-  decoder.decode().then(value => {
+  let done = false;
+  decoder.decode().then(result => {
     //console.log('decoded, yay!', value);
-    stop = true;
-    console.log('total packets', packetCount);
+    done = true;
+    console.log('total packets', result.receivedPackets);
   }).catch(e => console.error(e));
 
   const stream = await encoder.createReadableStream();
   const reader = stream.getReader();
   timer.start();
-  while(!stop) {
-    packetCount++;
+  while(!done) {
     //console.log('packet', packetCount);
     const {value: packet} = await reader.read();
     //console.log('packet', packet.header);
     try {
-      stop = await decoder.enqueue(packet.data);
+      ({done} = await decoder.enqueue(packet.data));
     } catch(e) {
       e => console.error(e);
     }

@@ -10,7 +10,7 @@ export class Decoder {
 
   async decode() {
     this.decoding = true;
-    this.current = this.data = null;
+    this.progress = this.data = null;
     this.packets = new Map();
     this.blocks = new Map();
     return new Promise((resolve, reject) => {
@@ -30,23 +30,29 @@ export class Decoder {
     const {blocks} = this;
     const packet = await Packet.parse({data});
     const {header} = packet;
-    if(this.current) {
+    if(this.progress) {
       // check to see if packet matches current decoding data
       this._validatePacket(packet);
     } else {
       // start new decoding
       const {totalSize, blockSize} = header;
       this.blockCount = Math.ceil(totalSize / blockSize);
-      this.current = {totalSize, blockSize};
+      this.progress = {
+        totalSize, blockSize, totalBlocks: this.blockCount,
+        receivedBlocks: 0, receivedPackets: 0,
+        done: false
+      };
       this.data = new Uint8Array(this.blockCount * blockSize);
     }
+
+    this.progress.receivedPackets++;
 
     // handle case where packet has a single block
     if(header.indexes.length === 1) {
       const [index] = header.indexes;
       if(blocks.has(index)) {
-        // nothing new, return not done yet
-        return false;
+        // nothing new, return current progress
+        return this.progress;
       }
       // new block!
       const block = this._addBlock({index, block: packet.payload});
@@ -55,8 +61,7 @@ export class Decoder {
       // reduce packets to blocks
       const newBlockIndexes = [index];
       this._reduce({newBlockIndexes});
-      // return whether or not decoding has finished
-      return !this.decoding;
+      return this.progress;
     }
 
     // record packet
@@ -83,8 +88,7 @@ export class Decoder {
       this._reduce({newBlockIndexes});
     }
 
-    // return whether or not decoding has finished
-    return !this.decoding;
+    return this.progress;
   }
 
   cancel() {
@@ -95,13 +99,13 @@ export class Decoder {
       this._reject(error);
     }
     this._resolve = this._reject = null;
-    this.data = this.current = null;
+    this.data = this.progress = null;
     this.blocks = this.packets = null;
   }
 
   _validatePacket(packet) {
     const {header} = packet;
-    const {totalSize, blockSize} = this.current;
+    const {totalSize, blockSize} = this.progress;
     if(!(totalSize === header.totalSize && blockSize === header.blockSize)) {
       throw new Error('Packet does not match the currently decoding data.');
     }
@@ -151,24 +155,26 @@ export class Decoder {
   }
 
   _addBlock({index, block}) {
-    const {blocks, current, data} = this;
-    const {blockSize} = current;
+    const {blocks, progress, data} = this;
+    const {blockSize} = progress;
     const offset = index * blockSize;
     data.set(block, offset);
     block = new Uint8Array(data.buffer, data.byteOffset + offset, blockSize);
     blocks.set(index, block);
+    progress.receivedBlocks++;
     return block;
   }
 
   _finish() {
-    const {current, data} = this;
-    const {totalSize} = current;
+    const {progress, data} = this;
+    const {totalSize} = progress;
+    progress.done = true;
     const result = new Uint8Array(data.buffer, data.byteOffset, totalSize);
     // clear `_reject` to prevent throwing an AbortError in `cancel`
     this._reject = null;
     const {_resolve: resolve} = this;
     // reuse `cancel` to clear state
     this.cancel();
-    resolve(result);
+    resolve({...progress, data: result});
   }
 }

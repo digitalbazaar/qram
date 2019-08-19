@@ -144,14 +144,14 @@ requestAnimationFrame(function enqueue() {
   // enqueue the packet data for decoding, ignoring any errors
   // and rescheduling until done or aborted
   decoder.enqueue(base64url.decode(text)
-    .then(done => done ? null : requestAnimationFrame(enqueue))
+    .then({done} => done ? null : requestAnimationFrame(enqueue))
     .catch(e => e.name === 'AbortError' ?
       null : requestAnimationFrame(enqueue));
 });
 
 try {
   // result found
-  const data = await decoder.decode();
+  const {data} = await decoder.decode();
 } catch(e) {
   // failure to decode
   console.error(e);
