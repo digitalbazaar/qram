@@ -48,17 +48,8 @@ export class Packet {
       throw Error(`Unsupported digest algorithm "${digestAlgorithm.name}".`);
     }
 
-    // TODO: change to CBOR serialization
     // determine total packet size
-    const digestSize = SHA_256_LENGTH;
-    const headerSize =
-      1 + // 1 byte version 0x01
-      4 + // header size
-      4 + // total size of the data
-      4 + // uint32 # of blocks in the packet
-      indexes.length * 4 + // uint32 for each block index, in order
-      (2 + digestSize) + // multihash-encoded digest
-      4; // uint32 of blockSize
+    const headerSize = this._getHeaderSize({indexCount: indexes.length});
     const packetSize = headerSize + blockSize;
 
     const data = new Uint8Array(packetSize);
@@ -75,8 +66,6 @@ export class Packet {
       }
     }
 
-    // TODO: change to CBOR serialization
-    // TODO: move to _encodeHeader()
     // create packet header
     const header = {
       version: VERSION,
@@ -87,16 +76,7 @@ export class Packet {
       digest: await Packet._digest(payload),
       blockSize
     };
-    const hData = new Uint8Array(data.buffer, data.byteOffset, headerSize);
-    const dv = new DataView(hData.buffer, hData.byteOffset, hData.length);
-    let offset = 0;
-    hData[offset] = header.version;
-    dv.setUint32(offset += 1, header.size);
-    dv.setUint32(offset += 4, header.totalSize);
-    dv.setUint32(offset += 4, header.blockCount);
-    header.indexes.forEach(i => dv.setUint32(offset += 4, i));
-    hData.set(header.digest, offset += 4);
-    dv.setUint32(offset += header.digest.length, blockSize);
+    this._writeHeader({header, data});
 
     return new Packet({header, payload, data});
   }
@@ -111,44 +91,13 @@ export class Packet {
         `${MIN_PACKET_SIZE} bytes.`);
     }
 
-    // TODO: change to CBOR serialization
-    // TODO: move to _parseHeader()
     // parse header
-    let offset = 0;
-    if(data[offset] !== VERSION) {
-      // invalid version
-      throw new Error('Invalid version.');
-    }
+    const header = this._parseHeader({data});
 
-    const header = {version: VERSION};
-    const dv = new DataView(data.buffer, data.byteOffet, data.length);
-    header.size = dv.getUint32(offset += 1);
-    header.totalSize = dv.getUint32(offset += 4);
-    header.blockCount = dv.getUint32(offset += 4);
-    header.indexes = new Array(header.blockCount);
-    for(let i = 0; i < header.blockCount; ++i) {
-      header.indexes[i] = dv.getUint32(offset += 4);
-    }
-    const mh1 = dv.getUint8(offset += 4);
-    const mh2 = dv.getUint8(offset += 1);
-    if(!(mh1 === MH_SHA_256 && mh2 === SHA_256_LENGTH)) {
-      throw Error(`Unsupported multihash codec "${mh1}".`);
-    }
-    header.digest = new Uint8Array(
-      data.buffer, data.byteOffset + offset - 1, 2 + SHA_256_LENGTH);
-    header.blockSize = dv.getUint32(offset += (1 + SHA_256_LENGTH));
-    offset += 4;
-    const headerSize = offset;
-
-    // verify payload size
-    if(header.blockSize !== (data.length - offset)) {
-      throw new Error(
-        `Block size (${header.blockSize}) does not match packet payload ` +
-        `size (${data.length - offset}).`);
-    }
+    // parse payload
     const payload = new Uint8Array(
-      data.buffer, data.byteOffset + offset, header.blockSize);
-    const packetSize = headerSize + payload.length;
+      data.buffer, data.byteOffset + header.size, header.blockSize);
+    const packetSize = header.size + payload.length;
     if(data.length !== packetSize) {
       throw new Error(`Invalid packet size; expected ${packetSize}.`);
     }
@@ -175,5 +124,71 @@ export class Packet {
     mh[1] = digest.length;
     mh.set(digest, 2);
     return mh;
+  }
+
+  static _getHeaderSize({digestSize = SHA_256_LENGTH, indexCount}) {
+    // TODO: change to CBOR serialization
+    const headerSize =
+      1 + // 1 byte version 0x01
+      4 + // header size
+      4 + // total size of the data
+      4 + // uint32 # of blocks in the packet
+      indexCount * 4 + // uint32 for each block index, in order
+      (2 + digestSize) + // multihash-encoded digest
+      4; // uint32 of blockSize
+    return headerSize;
+  }
+
+  static _writeHeader({header, data}) {
+    // TODO: change to CBOR serialization
+    const hData = new Uint8Array(data.buffer, data.byteOffset, header.size);
+    const dv = new DataView(hData.buffer, hData.byteOffset, hData.length);
+    let offset = 0;
+    hData[offset] = header.version;
+    dv.setUint32(offset += 1, header.size);
+    dv.setUint32(offset += 4, header.totalSize);
+    dv.setUint32(offset += 4, header.blockCount);
+    header.indexes.forEach(i => dv.setUint32(offset += 4, i));
+    hData.set(header.digest, offset += 4);
+    dv.setUint32(offset += header.digest.length, header.blockSize);
+  }
+
+  static _parseHeader({data}) {
+    // TODO: change to CBOR serialization
+
+    // parse header
+    let offset = 0;
+    if(data[offset] !== VERSION) {
+      // invalid version
+      throw new Error('Invalid version.');
+    }
+
+    const header = {version: VERSION};
+    const dv = new DataView(data.buffer, data.byteOffet, data.length);
+    header.size = dv.getUint32(offset += 1);
+    header.totalSize = dv.getUint32(offset += 4);
+    header.blockCount = dv.getUint32(offset += 4);
+    header.indexes = new Array(header.blockCount);
+    for(let i = 0; i < header.blockCount; ++i) {
+      header.indexes[i] = dv.getUint32(offset += 4);
+    }
+    const mh1 = dv.getUint8(offset += 4);
+    const mh2 = dv.getUint8(offset += 1);
+    if(!(mh1 === MH_SHA_256 && mh2 === SHA_256_LENGTH)) {
+      throw Error(`Unsupported multihash codec "${mh1}".`);
+    }
+    header.digest = new Uint8Array(
+      data.buffer, data.byteOffset + offset - 1, 2 + SHA_256_LENGTH);
+    header.blockSize = dv.getUint32(offset += (1 + SHA_256_LENGTH));
+    offset += 4;
+
+    // verify payload size
+    if(header.blockSize !== (data.length - offset)) {
+      throw new Error(
+        `Block size (${header.blockSize}) does not match packet payload ` +
+        `size (${data.length - offset}).`);
+    }
+
+    return header;
   }
 }
