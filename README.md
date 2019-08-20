@@ -144,7 +144,15 @@ requestAnimationFrame(function enqueue() {
   // enqueue the packet data for decoding, ignoring any errors
   // and rescheduling until done or aborted
   decoder.enqueue(base64url.decode(text)
-    .then({done} => done ? null : requestAnimationFrame(enqueue))
+    .then(progress => {
+      // show progress, e.g. `progress.receivedBlocks / progress.totalBlocks`,
+      // to user somehow ...
+
+      if(!progress.done) {
+        // not done yet, schedule to get another packet
+        requestAnimationFrame(enqueue);
+      }
+    })
     .catch(e => e.name === 'AbortError' ?
       null : requestAnimationFrame(enqueue));
 });
