@@ -48,6 +48,7 @@ export class Packet {
       throw Error(`Unsupported digest algorithm "${digestAlgorithm.name}".`);
     }
 
+    // TODO: change to CBOR serialization
     // determine total packet size
     const digestSize = SHA_256_LENGTH;
     const headerSize =
@@ -74,6 +75,7 @@ export class Packet {
       }
     }
 
+    // TODO: change to CBOR serialization
     // TODO: move to _encodeHeader()
     // create packet header
     const header = {
@@ -109,6 +111,7 @@ export class Packet {
         `${MIN_PACKET_SIZE} bytes.`);
     }
 
+    // TODO: change to CBOR serialization
     // TODO: move to _parseHeader()
     // parse header
     let offset = 0;
