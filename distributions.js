@@ -32,9 +32,9 @@ export function robustSoliton({
   // it tends to decrease the amount of data that must be transmitted when
   // using LT codes
 
-  // `M` must be an integer <= `N`
-  if(!(Number.isInteger(M) && M <= N)) {
-    throw new Error('"M" must be an integer that is <= "N".');
+  // `M` must be an integer < `N` (or M === N and N === 1)
+  if(!((Number.isInteger(M) && M < N) || (M === N && N === 1))) {
+    throw new Error('"M" must be an integer that is less than "N".');
   }
 
   const R = N / M;
