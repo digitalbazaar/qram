@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>QR code Animation Method (QRAM) Demo</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Import Google Icon Font -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <!-- Compiled and minified Materialize JS/CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+  <!-- modules -->
+  <script src="https://unpkg.com/qram@0.2.1/dist/qram.min.js"></script>
+  <script src="https://unpkg.com/base64url-universal@1.1.0/dist/base64url-universal.min.js"></script>
+  <script src="https://unpkg.com/qrcode@1.4.1/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/jsqr@1.2.0/dist/jsQR.js"></script>
+</head>
+<body>
+
+<div style="padding: 5px">
+  <h5>QR code Animation Method (QRAM) Demo</h5>
+  <div>
+    <button id="present">Present</button>
+    <button id="receive">Receive</button>
+    <button id="camera">Camera</button>
+  </div>
+  <div style="display: flex; justify-content: space-between">
+    <canvas
+      id="canvas"
+      style="border: 1px solid #333; width: 500px; height: 500px"></canvas>
+    <video
+      autoplay
+      style="border: 1px solid #333; width: 500px; height: 500px"></video>
+  </div>
+</div>
+
+<!-- div class="container">
+  <div class="card-panel">
+    <div class="row">
+      <div class="col s5">
+        <h5>Received...</h5>
+
+        <div id="progress"></div>
+      </div>
+    </div>
+  </div>
+</div -->
+
+<script src="./index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</body>
+</html>
