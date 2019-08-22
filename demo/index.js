@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   _on('present', 'click', present);
   _on('receive', 'click', receive);
   _on('camera', 'click', toggleCamera);
+  _clearProgress();
 });
 
 const state = {
@@ -24,17 +25,23 @@ const state = {
 };
 
 async function toggleCamera() {
-  console.log('toggle camera');
   const video = document.querySelector('video');
 
   if(state.enableCamera) {
+    console.log('Camera turned off');
     state.enableCamera = false;
     video.srcObject = null;
     return;
   }
 
+  console.log('Camera turned on');
+
   const constraints = {
-    video: {width: {min: 500}, height: {min: 500}}
+    video: {
+      width: {min: 500},
+      height: {min: 500},
+      facingMode: 'environment'
+    }
   };
 
   try {
@@ -49,11 +56,11 @@ async function toggleCamera() {
 
 async function present() {
   if(state.runEncoder) {
-    console.log('presentation stopped');
+    console.log('Presentation stopped');
     state.runEncoder = false;
     return;
   }
-  console.log('presenting...');
+  console.log('Presenting...');
   state.runEncoder = true;
 
   // generate fake data for presentation
@@ -76,11 +83,13 @@ async function present() {
 
 async function receive() {
   if(state.decoder) {
-    console.log('receive canceled');
+    console.log('Receive canceled');
     state.decoder.cancel();
     state.decoder = null;
     return;
   }
+
+  _clearProgress();
 
   let source;
   if(state.enableCamera) {
@@ -93,10 +102,8 @@ async function receive() {
     source = document.getElementById('canvas');
   }
 
-  console.log('receiving...');
+  console.log('Receiving...');
   const decoder = state.decoder = new Decoder();
-
-  //const canvas = document.querySelector('canvas');
 
   // use `requestAnimationFrame` so that scanning will not happen unless the
   // user has focused the window/tab displaying the qr-code stream
@@ -118,15 +125,7 @@ async function receive() {
     const data = base64url.decode(text);
     decoder.enqueue(data)
       .then(progress => {
-        console.log('progress', progress);
-        const {
-          receivedPackets: packetCount,
-          receivedBlocks: blocks,
-          totalBlocks
-        } = progress;
-        console.log(
-          `received packet ${packetCount}, ${data.length} bytes`);
-        console.log(`decoded ${blocks}/${totalBlocks} blocks`);
+        _updateProgress({progress, data});
         if(!progress.done) {
           requestAnimationFrame(enqueue);
         }
@@ -147,7 +146,7 @@ async function receive() {
     // console.log('decoded data', data);
     const time = ((Date.now() - start) / 1000).toFixed(3);
     const size = (state.size / 1024).toFixed(3);
-    console.log(`decoded ${size} KiB in time ${time} seconds`);
+    _finish({data, time, size});
   } catch(e) {
     // failure to decode
     console.error(e);
@@ -155,6 +154,39 @@ async function receive() {
 
   state.runEncoder = false;
   state.decoder = null;
+}
+
+function _updateProgress({progress, data}) {
+  console.log('progress', progress);
+  const {
+    receivedPackets: packetCount,
+    receivedBlocks: blocks,
+    totalBlocks
+  } = progress;
+  console.log(
+    `received packet ${packetCount}, ${data.length} bytes`);
+  console.log(`decoded ${blocks}/${totalBlocks} blocks`);
+  const packetsElement = document.getElementById('packets');
+  packetsElement.innerHTML =
+    `Received packet ${packetCount}, ${data.length} bytes`;
+  const blocksElement = document.getElementById('blocks');
+  blocksElement.innerHTML = `Decoded ${blocks}/${totalBlocks} blocks`;
+}
+
+function _finish({data, time, size}) {
+  const msg = `Decoded ${size} KiB in time ${time} seconds`;
+  console.log(msg);
+  const element = document.getElementById('finish');
+  element.innerHTML = `Decoded ${size} KiB in time ${time} seconds`;
+}
+
+function _clearProgress() {
+  const packets = document.getElementById('packets');
+  packets.innerHTML = 'No packets received yet';
+  const blocks = document.getElementById('blocks');
+  blocks.innerHTML = 'No blocks decoded yet';
+  const finish = document.getElementById('finish');
+  finish.innerHTML = '';
 }
 
 function _on(id, event, listener) {
