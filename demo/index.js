@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   _on('receive', 'click', receive);
   _on('camera', 'click', toggleCamera);
   _clearProgress();
+  _hide('video');
 });
 
 const state = {
@@ -25,7 +26,7 @@ const state = {
 };
 
 async function toggleCamera() {
-  const video = document.querySelector('video');
+  const video = document.getElementById('video');
 
   if(state.enableCamera) {
     console.log('Camera turned off');
@@ -34,7 +35,14 @@ async function toggleCamera() {
     return;
   }
 
+  if(state.runEncoder) {
+    // turn off presentation
+    present();
+  }
+
   console.log('Camera turned on');
+  _hide('canvas');
+  _show('video');
 
   const constraints = {
     video: {
@@ -60,6 +68,15 @@ async function present() {
     state.runEncoder = false;
     return;
   }
+
+  // turn off camera
+  if(state.enableCamera) {
+    toggleCamera();
+  }
+
+  _hide('video');
+  _show('canvas');
+
   const fps = parseInt(document.getElementById('fps').value, 10) || 30;
   console.log('fps', fps);
   console.log(`Presenting @ ${fps} frames/second...`);
@@ -97,7 +114,7 @@ async function receive() {
   if(state.enableCamera) {
     console.log('Decoding from camera...');
     // get a video element to read images of qr-codes from
-    source = document.querySelector('video');
+    source = document.getElementById('video');
   } else {
     console.log('Decoding from canvas directly...');
     // get canvas element to read images of qr-codes from
@@ -194,4 +211,12 @@ function _clearProgress() {
 function _on(id, event, listener) {
   const element = document.getElementById(id);
   element.addEventListener(event, listener);
+}
+
+function _show(id) {
+  document.getElementById(id).style.display = 'block';
+}
+
+function _hide(id) {
+  document.getElementById(id).style.display = 'none';
 }
