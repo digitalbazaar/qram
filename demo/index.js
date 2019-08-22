@@ -60,7 +60,9 @@ async function present() {
     state.runEncoder = false;
     return;
   }
-  console.log('Presenting...');
+  const fps = parseInt(document.getElementById('fps').value, 10) || 30;
+  console.log('fps', fps);
+  console.log(`Presenting @ ${fps} frames/second...`);
   state.runEncoder = true;
 
   // generate fake data for presentation
@@ -68,7 +70,7 @@ async function present() {
   crypto.getRandomValues(data);
 
   const encoder = new Encoder({data, blockSize: 600});
-  const timer = encoder.createTimer({fps: 30});
+  const timer = encoder.createTimer({fps});
   const canvas = document.getElementById('canvas');
   const stream = await encoder.createReadableStream();
   const reader = stream.getReader();
