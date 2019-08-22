@@ -78,15 +78,18 @@ async function present() {
   _show('canvas');
 
   const fps = parseInt(document.getElementById('fps').value, 10) || 30;
-  console.log('fps', fps);
-  console.log(`Presenting @ ${fps} frames/second...`);
+  const blockSize = parseInt(document.getElementById('size').value, 10) || 300;
+
+  console.log(
+    `Presenting @ ${fps} frames/second, block size is ${blockSize} bytes...`);
+
   state.runEncoder = true;
 
   // generate fake data for presentation
   const data = new Uint8Array(state.size);
   crypto.getRandomValues(data);
 
-  const encoder = new Encoder({data, blockSize: 600});
+  const encoder = new Encoder({data, blockSize});
   const timer = encoder.createTimer({fps});
   const canvas = document.getElementById('canvas');
   const stream = await encoder.createReadableStream();
