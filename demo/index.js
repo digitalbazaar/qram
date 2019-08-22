@@ -78,7 +78,7 @@ async function present() {
   _show('canvas');
 
   const fps = parseInt(document.getElementById('fps').value, 10) || 30;
-  const blockSize = parseInt(document.getElementById('size').value, 10) || 400;
+  const blockSize = parseInt(document.getElementById('size').value, 10) || 200;
   const resistance = document.getElementById('resistance').value;
 
   console.log(
@@ -90,8 +90,8 @@ async function present() {
   const data = new Uint8Array(state.size);
   crypto.getRandomValues(data);
 
-  let version = 25;
-  if(blockSize > 400) {
+  let version = 21;
+  if(blockSize > 200) {
     version = undefined;
   }
 
