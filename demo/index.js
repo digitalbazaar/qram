@@ -78,7 +78,7 @@ async function present() {
   _show('canvas');
 
   const fps = parseInt(document.getElementById('fps').value, 10) || 30;
-  const blockSize = parseInt(document.getElementById('size').value, 10) || 200;
+  const blockSize = parseInt(document.getElementById('size').value, 10) || 400;
   const resistance = document.getElementById('resistance').value;
 
   console.log(
