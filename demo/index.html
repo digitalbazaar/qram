@@ -21,15 +21,23 @@
 <div style="padding: 5px">
   <h5>QR code Animation Method (QRAM) Demo</h5>
   <div>
+    <span>FPS: <input id="fps" type="number" maxlength="2" value="30"
+        style="width: 60px"></input></span>
+    <span>BLOCK SIZE: <input id="size" type="number" value="250"
+        style="width: 80px"></input></span>
+    <span>ERROR RES.:
+      <select id="resistance" style="width: 80px; display: inline-block">
+        <option value="H">30%</option>
+        <option value="Q" selected>25%</option>
+        <option value="M">15%</option>
+        <option value="L">7%</option>
+      </select>
+    </span>
+  </div>
+  <div style="padding: 3px">
     <button id="present">Present</button>
     <button id="receive">Receive</button>
     <button id="camera">Camera</button>
-  </div>
-  <div>
-    <span>FPS: <input id="fps" type="number" maxlength="2" value="30"
-        style="width: 60px"></input></span>
-    <span>BLOCK SIZE: <input id="size" type="number" value="300"
-        style="width: 80px"></input></span>
   </div>
   <div style="display: flex; justify-content: space-between">
     <canvas

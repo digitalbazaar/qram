@@ -78,7 +78,8 @@ async function present() {
   _show('canvas');
 
   const fps = parseInt(document.getElementById('fps').value, 10) || 30;
-  const blockSize = parseInt(document.getElementById('size').value, 10) || 300;
+  const blockSize = parseInt(document.getElementById('size').value, 10) || 200;
+  const resistance = document.getElementById('resistance').value;
 
   console.log(
     `Presenting @ ${fps} frames/second, block size is ${blockSize} bytes...`);
@@ -89,6 +90,11 @@ async function present() {
   const data = new Uint8Array(state.size);
   crypto.getRandomValues(data);
 
+  let version = 25;
+  if(blockSize > 400) {
+    version = undefined;
+  }
+
   const encoder = new Encoder({data, blockSize});
   const timer = encoder.createTimer({fps});
   const canvas = document.getElementById('canvas');
@@ -98,7 +104,11 @@ async function present() {
   while(state.runEncoder) {
     const {value: packet} = await reader.read();
     const text = base64url.encode(packet.data);
-    await QRCode.toCanvas(canvas, text);
+    await QRCode.toCanvas(canvas, text, {
+      version,
+      mode: 'alphanumeric',
+      errorCorrectionLevel: resistance
+    });
     await timer.nextFrame();
   }
 }
