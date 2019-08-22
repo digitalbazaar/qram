@@ -1,5 +1,10 @@
 # qram ChangeLog
 
+## 0.2.1 - 2019-08-22
+
+### Fixed
+- Add webpack build.
+
 ## 0.2.0 - 2019-08-22
 
 ### Added
