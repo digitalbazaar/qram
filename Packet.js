@@ -53,6 +53,27 @@ export class Packet {
     }
   }
 
+  subtractPacket({packet, targetIndex, data}) {
+    const {header, payload} = this;
+    const idx = header.indexes.indexOf(targetIndex);
+    if(idx === -1) {
+      throw new Error(`Block "${targetIndex}" is not in this packet.`);
+    }
+
+    // subtract packet payload to produce block, writing directly into the
+    // decoded data and returning the block view
+    const {payload: otherPayload} = packet;
+    const {blockSize} = header;
+    const offset = targetIndex * blockSize;
+    const block = new Uint8Array(
+      data.buffer, data.byteOffset + offset, blockSize);
+    for(let i = 0; i < payload.length; ++i) {
+      block[i] = payload[i] ^ otherPayload[i];
+    }
+
+    return {index: targetIndex, block};
+  }
+
   static async create({
     totalSize, blocks, indexes, blockSize, digestAlgorithm = {name: 'SHA-256'}
   }) {
@@ -85,7 +106,9 @@ export class Packet {
       totalSize,
       blockCount: blocks.length,
       indexes,
+      // TODO: change to `packetDigest`
       digest: await Packet._digest(payload),
+      // TODO: add digest for all data (`dataDigest`)
       blockSize
     };
     this._writeHeader({header, data});
@@ -105,6 +128,7 @@ export class Packet {
 
     // parse header
     const header = this._parseHeader({data});
+    //console.log('indexes', header.indexes);
 
     // parse payload
     const payload = new Uint8Array(

@@ -134,7 +134,7 @@ export class Decoder {
 
   _reduce({newBlockIndexes}) {
     // subtract any new blocks from any other packets
-    const {blocks, blockCount, packets} = this;
+    const {blocks, blockCount, packets, progress} = this;
     do {
       const tmp = newBlockIndexes;
       newBlockIndexes = [];
@@ -144,7 +144,8 @@ export class Decoder {
           return this._finish();
         }
         // remove new block from every adjacent packet
-        const packetSet = packets.get(tmp.shift());
+        const index = tmp.shift();
+        const packetSet = packets.get(index);
         if(packetSet) {
           for(const packet of packetSet) {
             if(packet.header.indexes.length === 1) {
@@ -158,13 +159,23 @@ export class Decoder {
         }
       }
 
+      if(newBlockIndexes.length === 0) {
+        // every time packets received reaches `blockCount` threshold, run
+        // a scan to see if we can decode a block via intersection, this
+        // helps optimize low probability scenarios where enough single
+        // blocks have not been received to decode yet
+        if(progress.receivedPackets % blockCount === 0) {
+          this._reduceByIntersection({newBlockIndexes});
+        }
+      }
     } while(newBlockIndexes.length > 0);
   }
 
   _reduceOne({packet, newBlockIndexes}) {
     const {blocks, data, packets} = this;
     const {header} = packet;
-    for(const index of header.indexes) {
+    const indexes = header.indexes.slice();
+    for(const index of indexes) {
       const block = blocks.get(index);
       if(!block) {
         continue;
@@ -180,6 +191,52 @@ export class Decoder {
         // got a new block!
         this._addBlock(result);
         newBlockIndexes.push(result.index);
+      }
+    }
+  }
+
+  _reduceByIntersection({newBlockIndexes}) {
+    // sort all packets by the number of blocks they encode
+    let maxLength = 1;
+    const lengthMap = new Map();
+    const {blocks, data, packets} = this;
+    for(const packetSet of packets.values()) {
+      for(const packet of packetSet) {
+        const {length} = packet.header.indexes;
+        if(length > maxLength) {
+          maxLength = length;
+        }
+        const entry = lengthMap.get(length);
+        if(entry) {
+          entry.add(packet);
+        } else {
+          lengthMap.set(length, new Set([packet]));
+        }
+      }
+    }
+
+    // find two packets with a difference of just one block; that block
+    // can be decoded
+    for(let i = maxLength; i > 1; --i) {
+      const largerPacketSet = lengthMap.get(i);
+      if(!largerPacketSet) {
+        continue;
+      }
+      const smallerPacketSet = lengthMap.get(i - 1);
+      if(!smallerPacketSet) {
+        continue;
+      }
+      for(const larger of largerPacketSet) {
+        for(const smaller of smallerPacketSet) {
+          const targetIndex = _diffByOne(
+            larger.header.indexes, smaller.header.indexes);
+          if(targetIndex !== false && !blocks.has(targetIndex)) {
+            const result = larger.subtractPacket(
+              {packet: smaller, targetIndex, data});
+            this._addBlock(result);
+            newBlockIndexes.push(targetIndex);
+          }
+        }
       }
     }
   }
@@ -206,4 +263,23 @@ export class Decoder {
     resolve({...progress, data: result});
     return progress;
   }
+}
+
+function _diffByOne(larger, smaller) {
+  // optimized by assuming `larger` and `smaller` are sorted
+  let diff = false;
+  for(let i = 0; i < smaller.length; ++i) {
+    if(larger[i] !== smaller[i]) {
+      if(diff !== false) {
+        // more than one difference
+        return false;
+      }
+      diff = larger[i];
+    }
+  }
+  if(diff === false) {
+    // last element is the only difference
+    return larger[larger.length - 1];
+  }
+  return diff;
 }
