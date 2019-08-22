@@ -46,7 +46,7 @@ export class Encoder {
       } while(indexes.includes(x));
       indexes.push(x);
     }
-    indexes.sort();
+    indexes.sort((a, b) => a - b);
 
     const blocks = await Promise.all(
       indexes.map(async i => this._createBlock(i)));
