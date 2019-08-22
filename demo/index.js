@@ -115,10 +115,13 @@ async function receive() {
     console.log('Decoding from camera...');
     // get a video element to read images of qr-codes from
     source = document.getElementById('video');
-  } else {
+  } else if(state.runEndoder) {
     console.log('Decoding from canvas directly...');
     // get canvas element to read images of qr-codes from
     source = document.getElementById('canvas');
+  } else {
+    console.error('Receive aborted, not using camera or presenting locally.');
+    return;
   }
 
   console.log('Receiving...');
