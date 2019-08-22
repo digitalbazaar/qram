@@ -17,11 +17,11 @@ export class Packet {
     this.data = data;
   }
 
-  subtract({index, block}) {
+  subtractBlock({index, block, data}) {
     const {header, payload} = this;
     const idx = header.indexes.indexOf(index);
     if(idx === -1) {
-      throw new Error(`Index "${index}" is not in this packet.`);
+      throw new Error(`Block "${index}" is not in this packet.`);
     }
     if(block.length !== header.blockSize) {
       throw new Error(
@@ -29,15 +29,27 @@ export class Packet {
         `block size specified in the packet header (${header.blockSize}).`);
     }
 
-    // subtract block
+    // subtract block...
     header.indexes.splice(idx, 1);
-    for(let i = 0; i < payload.length; ++i) {
-      payload[i] ^= block[i];
+
+    // if only one block will remain after subtraction, write it directly
+    // into the decoded data and return a view for it
+    if(header.indexes.length === 1) {
+      // write xor'd payload into `data` as a block to return
+      const {blockSize} = header;
+      const offset = index * blockSize;
+      const decoded = new Uint8Array(
+        data.buffer, data.byteOffset + offset, blockSize);
+      for(let i = 0; i < payload.length; ++i) {
+        decoded[i] = payload[i] ^ block[i];
+      }
+      return {index: header.indexes[0], block: decoded};
     }
 
-    // if a single block remains, return it
-    if(header.indexes.length === 1) {
-      return {index: header.indexes[0], block: payload};
+    // more than one block will remain in the packet, do subtraction and
+    // overwrite payload...
+    for(let i = 0; i < payload.length; ++i) {
+      payload[i] ^= block[i];
     }
   }
 

@@ -27,7 +27,7 @@ export class Decoder {
       throw error;
     }
 
-    const {blocks} = this;
+    const {blocks, packets} = this;
     const packet = await Packet.parse({data});
     const {header} = packet;
     if(this.progress) {
@@ -48,7 +48,7 @@ export class Decoder {
     const {progress} = this;
     progress.receivedPackets++;
 
-    // handle case where packet has a single block
+    // Case 1: Packet has a single block...
     if(header.indexes.length === 1) {
       const [index] = header.indexes;
       if(blocks.has(index)) {
@@ -56,38 +56,58 @@ export class Decoder {
         return progress;
       }
       // new block!
-      const block = this._addBlock({index, block: packet.payload});
-      blocks.set(index, block);
+      this._addBlock({index, block: packet.payload});
 
-      // reduce packets to blocks
-      const newBlockIndexes = [index];
-      this._reduce({newBlockIndexes});
+      // reduce any packets to blocks using new decoded block
+      this._reduce({newBlockIndexes: [index]});
       return progress;
     }
 
-    // record packet
-    let recorded = false;
-    header.indexes.forEach(i => {
-      if(blocks.has(i)) {
+    // Case 2: Packet contains no blocks we haven't already decoded...
+
+    // check if the packet contains any new blocks
+    const existingBlocks = [];
+    for(const index of header.indexes) {
+      const block = blocks.get(index);
+      if(block) {
+        // block already decoded
+        existingBlocks.push({index, block});
+      }
+    }
+    if(existingBlocks.length === header.indexes.length) {
+      // no new block indexes in the packet, drop it by returning early
+      return progress;
+    }
+
+    // Case 3: Packet contains one new block that can be decoded...
+
+    // subtract existing blocks from the packet, record any new block found
+    for(const {index, block} of existingBlocks) {
+      const result = packet.subtractBlock({index, block, data: this.data});
+      // new block was decoded, track it, reduce other packets, and
+      // return progress
+      if(result) {
+        this._addBlock(result);
+        this._reduce({newBlockIndexes: [result.index]});
         return progress;
       }
-      recorded = true;
-      const packetSet = this.packets.get(i);
+    }
+
+    // Case 4: Packet contains more than one new block...
+
+    // new packet has blocks remaining to be decoded, record it with
+    // each of its remaining block indexes for later processing
+    for(const index of header.indexes) {
+      const packetSet = packets.get(index);
       if(packetSet) {
         packetSet.add(packet);
       } else {
-        this.packets.set(i, new Set([packet]));
+        packets.set(index, new Set([packet]));
       }
-    });
-
-    if(recorded) {
-      // go through packet and subtract out existing blocks
-      const newBlockIndexes = [];
-      this._reduceOne({packet, newBlockIndexes});
-
-      // reduce packets to blocks
-      this._reduce({newBlockIndexes});
     }
+
+    // attempt to reduce packets to blocks using new packet
+    this._reduce({newBlockIndexes: []});
 
     return progress;
   }
@@ -115,7 +135,7 @@ export class Decoder {
   _reduce({newBlockIndexes}) {
     // subtract any new blocks from any other packets
     const {blocks, blockCount, packets} = this;
-    while(newBlockIndexes.length > 0) {
+    do {
       const tmp = newBlockIndexes;
       newBlockIndexes = [];
       while(tmp.length > 0) {
@@ -127,40 +147,47 @@ export class Decoder {
         const packetSet = packets.get(tmp.shift());
         if(packetSet) {
           for(const packet of packetSet) {
+            if(packet.header.indexes.length === 1) {
+              // packet already reduced to a single block, skip it
+              continue;
+            }
             this._reduceOne({packet, newBlockIndexes});
           }
+          // clear packet set; block has been subtracted from all other packets
+          packetSet.clear();
         }
       }
-    }
+
+    } while(newBlockIndexes.length > 0);
   }
 
   _reduceOne({packet, newBlockIndexes}) {
-    const {blocks, packets} = this;
+    const {blocks, data, packets} = this;
     const {header} = packet;
-    header.indexes.forEach(index => {
+    for(const index of header.indexes) {
       const block = blocks.get(index);
       if(!block) {
-        return;
+        continue;
       }
-      const result = packet.subtract({index, block});
+      const result = packet.subtractBlock({index, block, data});
+      // disassociate packet from subtracted block
       const packetSet = packets.get(index);
       if(packetSet) {
         packetSet.delete(packet);
       }
+      // if a new block was produced, track it
       if(result && !blocks.has(result.index)) {
         // got a new block!
         this._addBlock(result);
         newBlockIndexes.push(result.index);
       }
-    });
+    }
   }
 
   _addBlock({index, block}) {
-    const {blocks, progress, data} = this;
-    const {blockSize} = progress;
-    const offset = index * blockSize;
-    data.set(block, offset);
-    block = new Uint8Array(data.buffer, data.byteOffset + offset, blockSize);
+    // assumes `block` was already written directly to `data` via
+    // a `subtract*` call on a packet
+    const {blocks, progress} = this;
     blocks.set(index, block);
     progress.receivedBlocks++;
     return block;
