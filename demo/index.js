@@ -138,7 +138,9 @@ async function receive() {
 
     // use qr-code reader of choice to get Uint8Array or Uint8ClampedArray
     // representing the packet
-    const result = jsQR(imageData.data, imageData.width, imageData.height);
+    const result = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'dontInvert'
+    });
     if(!result) {
       // no QR code found, try again on the next frame
       return requestAnimationFrame(enqueue);
