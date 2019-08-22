@@ -118,7 +118,7 @@ async function receive() {
     console.log('Decoding from camera...');
     // get a video element to read images of qr-codes from
     source = document.getElementById('video');
-  } else if(state.runEndoder) {
+  } else if(state.runEncoder) {
     console.log('Decoding from canvas directly...');
     // get canvas element to read images of qr-codes from
     source = document.getElementById('canvas');
