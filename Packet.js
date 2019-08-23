@@ -3,11 +3,10 @@
  */
 'use strict';
 
-import crypto from './crypto.js';
+import {default as crypto, MH_SHA_256, sha256} from './crypto.js';
 
 const VERSION = 0x01;
 const MIN_PACKET_SIZE = 52; // (1 + 4 + 4 + 4 + 34 + 4 + 1)
-const MH_SHA_256 = 0x12;
 const SHA_256_LENGTH = 32;
 
 export class Packet {
@@ -107,7 +106,7 @@ export class Packet {
       blockCount: blocks.length,
       indexes,
       // TODO: change to `packetDigest`
-      digest: await Packet._digest(payload),
+      digest: await sha256(payload),
       // TODO: add digest for all data (`dataDigest`)
       blockSize
     };
@@ -139,7 +138,7 @@ export class Packet {
     }
 
     // verify payload digest
-    const digest = await Packet._digest(payload);
+    const digest = await sha256(payload);
     // Note: constant time comparison not considered a requirement
     for(let i = 0; i < digest.length; ++i) {
       if(digest[i] !== header.digest[i]) {
@@ -148,18 +147,6 @@ export class Packet {
     }
 
     return new Packet({header, payload, data});
-  }
-
-  static async _digest(data) {
-    const digest = new Uint8Array(
-      await crypto.subtle.digest({name: 'SHA-256'}, data));
-    // format as multihash digest
-    // sha2-256: 0x12, length: 32 (0x20), digest value
-    const mh = new Uint8Array(2 + digest.length);
-    mh[0] = MH_SHA_256;
-    mh[1] = digest.length;
-    mh.set(digest, 2);
-    return mh;
   }
 
   static _getHeaderSize({digestSize = SHA_256_LENGTH, indexCount}) {

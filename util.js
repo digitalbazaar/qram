@@ -1,16 +1,6 @@
-// Node.js TextDecoder/TextEncoder
-import {TextDecoder, TextEncoder} from 'util';
-export {TextDecoder, TextEncoder};
+/*!
+ * Copyright (c) 2019 Digital Bazaar, Inc. All rights reserved.
+ */
+'use strict';
 
-export {ReadableStream, TransformStream} from 'web-streams-polyfill/ponyfill';
-
-export function stringToUint8Array(data) {
-  if(typeof data === 'string') {
-    // convert data to Uint8Array
-    return new TextEncoder().encode(data);
-  }
-  if(!(data instanceof Uint8Array)) {
-    throw new TypeError('"data" be a string or Uint8Array.');
-  }
-  return data;
-}
+export {ReadableStream} from 'web-streams-polyfill/ponyfill';
