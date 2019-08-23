@@ -20,9 +20,9 @@
     "Packet.js",
     "RandomDegree.js",
     "Timer.js",
-    "crypto-browser.js",
-    "crypto.js",
     "distributions.js",
+    "hash-browser.js",
+    "hash.js",
     "index.js",
     "main.js",
     "util.js",
@@ -30,7 +30,6 @@
   ],
   "dependencies": {
     "esm": "^3.2.22",
-    "isomorphic-webcrypto": "^1.6.1",
     "web-streams-polyfill": "^2.0.3"
   },
   "devDependencies": {

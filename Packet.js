@@ -3,7 +3,7 @@
  */
 'use strict';
 
-import {default as crypto, MH_SHA_256, sha256} from './crypto.js';
+import {MH_SHA_256, sha256} from './hash.js';
 
 const VERSION = 0x01;
 const MIN_PACKET_SIZE = 52; // (1 + 4 + 4 + 4 + 34 + 4 + 1)

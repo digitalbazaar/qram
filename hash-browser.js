@@ -5,7 +5,6 @@
 'use strict';
 
 const crypto = (self.crypto || self.msCrypto);
-export default crypto;
 
 export const MH_SHA_256 = 0x12;
 
