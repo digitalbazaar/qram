@@ -137,7 +137,7 @@ async function receive() {
     return;
   }
 
-  console.log('Receiving...');
+  console.log('Scanning...');
   const decoder = state.decoder = new Decoder();
 
   // use `requestAnimationFrame` so that scanning will not happen unless the
@@ -160,10 +160,11 @@ async function receive() {
     // and rescheduling until done or aborted
     const {data: text} = result;
     const data = base64url.decode(text);
+    console.log(`Scanned ${data.length} bytes, parsing...`);
     decoder.enqueue(data)
       .then(progress => {
-        _updateProgress({progress, data});
         if(!progress.done) {
+          _updateProgress({progress});
           requestAnimationFrame(enqueue);
         }
       })
@@ -179,11 +180,12 @@ async function receive() {
   try {
     // result found
     const start = Date.now();
-    const {data} = await decoder.decode();
-    // console.log('decoded data', data);
+    const progress = await decoder.decode();
+    _updateProgress({progress});
     const time = ((Date.now() - start) / 1000).toFixed(3);
-    const size = (state.size / 1024).toFixed(3);
-    _finish({data, time, size});
+    const {data} = progress;
+    // console.log('decoded data', data);
+    _finish({data, time});
   } catch(e) {
     // failure to decode
     console.error(e);
@@ -193,24 +195,22 @@ async function receive() {
   state.decoder = null;
 }
 
-function _updateProgress({progress, data}) {
-  console.log('progress', progress);
+function _updateProgress({progress}) {
+  console.log('Progress', progress);
   const {
     receivedPackets: packetCount,
     receivedBlocks: blocks,
     totalBlocks
   } = progress;
-  console.log(
-    `received packet ${packetCount}, ${data.length} bytes`);
-  console.log(`decoded ${blocks}/${totalBlocks} blocks`);
+  console.log(`Decoded ${blocks}/${totalBlocks} blocks`);
   const packetsElement = document.getElementById('packets');
-  packetsElement.innerHTML =
-    `Received packet ${packetCount}, ${data.length} bytes`;
+  packetsElement.innerHTML = `Received ${packetCount} packets`;
   const blocksElement = document.getElementById('blocks');
   blocksElement.innerHTML = `Decoded ${blocks}/${totalBlocks} blocks`;
 }
 
-function _finish({data, time, size}) {
+function _finish({data, time}) {
+  const size = (data.length / 1024).toFixed(3);
   const msg = `Decoded ${size} KiB in time ${time} seconds`;
   console.log(msg);
   const element = document.getElementById('finish');
