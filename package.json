@@ -76,7 +76,7 @@
   "homepage": "https://github.com/digitalbazaar/qram",
   "module": "main.js",
   "browser": {
-    "./crypto.js": "./crypto-browser.js",
+    "./hash.js": "./hash-browser.js",
     "./util.js": "./util-browser.js"
   },
   "engines": {
