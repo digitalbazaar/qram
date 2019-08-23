@@ -36,7 +36,8 @@ export class Packet {
     if(header.indexes.length === 1) {
       // write xor'd payload into `data` as a block to return
       const {blockSize} = header;
-      const offset = index * blockSize;
+      const [decodedIndex] = header.indexes;
+      const offset = decodedIndex * blockSize;
       const decoded = new Uint8Array(
         data.buffer, data.byteOffset + offset, blockSize);
       for(let i = 0; i < payload.length; ++i) {

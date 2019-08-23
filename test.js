@@ -1,13 +1,16 @@
 const {Decoder, Encoder} = require('./index.js');
-//const crypto = require('isomorphic-webcrypto');
+//const crypto = require('crypto');
 
 (async () => {
   //const size = 1024 * 100;
   //const size = 1024 * 1024 * 10;
+  //const size = 10;//24 * 4;
   const size = 1024 * 4;
   const data = new Uint8Array(size);
-  //const data = new Uint8Array([1, 2, 3]);
-  //crypto.getRandomValues(data);
+  //const data = new Uint8Array([0, 1, 2]);
+  //const data = new Uint8Array([0, 1, 2, 3, 4]);
+  //const buffer = crypto.randomBytes(size);
+  //data.set(buffer);
 
   const encoder = new Encoder({data, blockSize: 1024});
   const timer = encoder.createTimer({fps: 30});

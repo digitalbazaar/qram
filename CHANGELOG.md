@@ -1,5 +1,10 @@
 # qram ChangeLog
 
+## 0.3.1 - 2019-08-xx
+
+### Fixed
+- Fix incorrect index when decoding.
+
 ## 0.3.0 - 2019-08-23
 
 ### Changed

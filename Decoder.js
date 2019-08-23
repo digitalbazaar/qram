@@ -58,7 +58,12 @@ export class Decoder {
         return progress;
       }
       // new block!
-      this._addBlock({index, block: packet.payload});
+      const {blockSize} = header;
+      const offset = index * blockSize;
+      const block = new Uint8Array(
+        this.data.buffer, this.data.byteOffset + offset, blockSize);
+      block.set(packet.payload);
+      this._addBlock({index, block});
 
       // reduce any packets to blocks using new decoded block
       await this._reduce({newBlockIndexes: [index]});
@@ -283,13 +288,14 @@ export class Decoder {
 function _diffByOne(larger, smaller) {
   // optimized by assuming `larger` and `smaller` are sorted
   let diff = false;
-  for(let i = 0; i < smaller.length; ++i) {
-    if(larger[i] !== smaller[i]) {
+  for(let i = 0, j = 0; i < smaller.length; ++i, ++j) {
+    if(larger[j] !== smaller[i]) {
       if(diff !== false) {
         // more than one difference
         return false;
       }
-      diff = larger[i];
+      diff = larger[j];
+      i--;
     }
   }
   if(diff === false) {
