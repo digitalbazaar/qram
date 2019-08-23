@@ -30,7 +30,10 @@ const {Decoder, Encoder} = require('./index.js');
     try {
       ({done} = await decoder.enqueue(packet.data));
     } catch(e) {
-      e => console.error(e);
+      if(e.name === 'AbortError') {
+        break;
+      }
+      console.error(e);
     }
     //console.log('awaiting timer...');
     //await timer.nextFrame();

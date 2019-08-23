@@ -7,6 +7,7 @@ import {Packet} from './Packet.js';
 import {RandomDegree} from './RandomDegree.js';
 import {ReadableStream} from './util.js';
 import {Timer} from './Timer.js';
+import {sha256} from './hash.js';
 
 export class Encoder {
   constructor({data, blockSize, failureProbability} = {}) {
@@ -14,6 +15,7 @@ export class Encoder {
       throw new TypeError('"data" must be a Uint8Array or Uint8ClampedArray.');
     }
     this.data = data;
+    this.digest = null;
     this.blockSize = blockSize;
     this.stream = null;
     this.blockCount = Math.ceil(this.data.length / blockSize);
@@ -27,6 +29,10 @@ export class Encoder {
 
   async createReadableStream() {
     const encoder = this;
+    // hash data if not already done so
+    if(!this.digest) {
+      this.digest = await sha256(this.data);
+    }
     return new ReadableStream({
       async pull(controller) {
         // produce a packet and queue it for reading
@@ -36,7 +42,7 @@ export class Encoder {
   }
 
   async _nextPacket() {
-    const {blockCount, blockSize} = this;
+    const {blockCount, blockSize, data, digest} = this;
     const degree = this.random.next();
     const indexes = [];
     for(let i = 0; i < degree; ++i) {
@@ -51,7 +57,7 @@ export class Encoder {
     const blocks = await Promise.all(
       indexes.map(async i => this._createBlock(i)));
     return Packet.create({
-      totalSize: this.data.length, blocks, indexes, blockSize
+      totalSize: data.length, blocks, indexes, blockSize, digest
     });
   }
 

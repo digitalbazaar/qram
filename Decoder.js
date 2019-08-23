@@ -4,6 +4,7 @@
 'use strict';
 
 import {Packet} from './Packet.js';
+import {sha256} from './hash.js';
 
 export class Decoder {
   constructor() {}
@@ -35,10 +36,11 @@ export class Decoder {
       this._validatePacket(packet);
     } else {
       // start new decoding
-      const {totalSize, blockSize} = header;
+      const {totalSize, blockSize, digest} = header;
       this.blockCount = Math.ceil(totalSize / blockSize);
       this.progress = {
-        totalSize, blockSize, totalBlocks: this.blockCount,
+        totalSize, blockSize, digest,
+        totalBlocks: this.blockCount,
         receivedBlocks: 0, receivedPackets: 0,
         done: false
       };
@@ -59,7 +61,7 @@ export class Decoder {
       this._addBlock({index, block: packet.payload});
 
       // reduce any packets to blocks using new decoded block
-      this._reduce({newBlockIndexes: [index]});
+      await this._reduce({newBlockIndexes: [index]});
       return progress;
     }
 
@@ -88,7 +90,7 @@ export class Decoder {
       // return progress
       if(result) {
         this._addBlock(result);
-        this._reduce({newBlockIndexes: [result.index]});
+        await this._reduce({newBlockIndexes: [result.index]});
         return progress;
       }
     }
@@ -107,7 +109,7 @@ export class Decoder {
     }
 
     // attempt to reduce packets to blocks using new packet
-    this._reduce({newBlockIndexes: []});
+    await this._reduce({newBlockIndexes: []});
 
     return progress;
   }
@@ -120,19 +122,20 @@ export class Decoder {
       this._reject(error);
     }
     this._resolve = this._reject = null;
-    this.data = this.progress = null;
+    this.data = this.progress = this.digest = null;
     this.blocks = this.packets = null;
   }
 
   _validatePacket(packet) {
     const {header} = packet;
-    const {totalSize, blockSize} = this.progress;
-    if(!(totalSize === header.totalSize && blockSize === header.blockSize)) {
+    const {totalSize, blockSize, digest} = this.progress;
+    if(!(totalSize === header.totalSize && blockSize === header.blockSize &&
+      _areBuffersEqual(digest, header.digest))) {
       throw new Error('Packet does not match the currently decoding data.');
     }
   }
 
-  _reduce({newBlockIndexes}) {
+  async _reduce({newBlockIndexes}) {
     // subtract any new blocks from any other packets
     const {blocks, blockCount, packets, progress} = this;
     do {
@@ -250,11 +253,23 @@ export class Decoder {
     return block;
   }
 
-  _finish() {
+  async _finish() {
     const {progress, data} = this;
     const {totalSize} = progress;
     progress.done = true;
+
+    // get final result and verify digest
     const result = new Uint8Array(data.buffer, data.byteOffset, totalSize);
+    const digest = await sha256(result);
+    if(!_areBuffersEqual(digest, progress.digest)) {
+      const error = new Error('Decoding failed; checksum does not match.');
+      error.name = 'AbortError';
+      this._reject(error);
+      this._reject = null;
+      this.cancel();
+      throw error;
+    }
+
     // clear `_reject` to prevent throwing an AbortError in `cancel`
     this._reject = null;
     const {_resolve: resolve} = this;
@@ -282,4 +297,15 @@ function _diffByOne(larger, smaller) {
     return larger[larger.length - 1];
   }
   return diff;
+}
+
+function _areBuffersEqual(buf1, buf2) {
+  // does not need to be timing safe; does not need to check length as this
+  // helper is only called after ensuring lengths match
+  for(let i = 0; i < buf1.length; ++i) {
+    if(buf1[i] !== buf2[i]) {
+      return false;
+    }
+  }
+  return true;
 }

@@ -6,7 +6,7 @@
 import {MH_SHA_256, sha256} from './hash.js';
 
 const VERSION = 0x01;
-const MIN_PACKET_SIZE = 52; // (1 + 4 + 4 + 4 + 34 + 4 + 1)
+const MIN_PACKET_SIZE = 86; // (1 + 4 + 4 + 4 + 34 + 34 + 4 + 1)
 const SHA_256_LENGTH = 32;
 
 export class Packet {
@@ -74,7 +74,8 @@ export class Packet {
   }
 
   static async create({
-    totalSize, blocks, indexes, blockSize, digestAlgorithm = {name: 'SHA-256'}
+    totalSize, blocks, indexes, blockSize, digest,
+    digestAlgorithm = {name: 'SHA-256'}
   }) {
     if(digestAlgorithm.name !== 'SHA-256') {
       throw Error(`Unsupported digest algorithm "${digestAlgorithm.name}".`);
@@ -105,9 +106,8 @@ export class Packet {
       totalSize,
       blockCount: blocks.length,
       indexes,
-      // TODO: change to `packetDigest`
-      digest: await sha256(payload),
-      // TODO: add digest for all data (`dataDigest`)
+      packetDigest: await sha256(payload),
+      digest,
       blockSize
     };
     this._writeHeader({header, data});
@@ -127,7 +127,6 @@ export class Packet {
 
     // parse header
     const header = this._parseHeader({data});
-    //console.log('indexes', header.indexes);
 
     // parse payload
     const payload = new Uint8Array(
@@ -141,7 +140,7 @@ export class Packet {
     const digest = await sha256(payload);
     // Note: constant time comparison not considered a requirement
     for(let i = 0; i < digest.length; ++i) {
-      if(digest[i] !== header.digest[i]) {
+      if(digest[i] !== header.packetDigest[i]) {
         throw new Error('Packet checksum does not match.');
       }
     }
@@ -157,7 +156,8 @@ export class Packet {
       4 + // total size of the data
       4 + // uint32 # of blocks in the packet
       indexCount * 4 + // uint32 for each block index, in order
-      (2 + digestSize) + // multihash-encoded digest
+      (2 + digestSize) + // multihash-encoded *packet* digest
+      (2 + digestSize) + // multihash-encoded *full data* digest
       4; // uint32 of blockSize
     return headerSize;
   }
@@ -172,7 +172,8 @@ export class Packet {
     dv.setUint32(offset += 4, header.totalSize);
     dv.setUint32(offset += 4, header.blockCount);
     header.indexes.forEach(i => dv.setUint32(offset += 4, i));
-    hData.set(header.digest, offset += 4);
+    hData.set(header.packetDigest, offset += 4);
+    hData.set(header.digest, offset += header.packetDigest.length);
     dv.setUint32(offset += header.digest.length, header.blockSize);
   }
 
@@ -195,8 +196,15 @@ export class Packet {
     for(let i = 0; i < header.blockCount; ++i) {
       header.indexes[i] = dv.getUint32(offset += 4);
     }
-    const mh1 = dv.getUint8(offset += 4);
-    const mh2 = dv.getUint8(offset += 1);
+    let mh1 = dv.getUint8(offset += 4);
+    let mh2 = dv.getUint8(offset += 1);
+    if(!(mh1 === MH_SHA_256 && mh2 === SHA_256_LENGTH)) {
+      throw Error(`Unsupported multihash codec "${mh1}".`);
+    }
+    header.packetDigest = new Uint8Array(
+      data.buffer, data.byteOffset + offset - 1, 2 + SHA_256_LENGTH);
+    mh1 = dv.getUint8(offset += (1 + SHA_256_LENGTH));
+    mh2 = dv.getUint8(offset += 1);
     if(!(mh1 === MH_SHA_256 && mh2 === SHA_256_LENGTH)) {
       throw Error(`Unsupported multihash codec "${mh1}".`);
     }

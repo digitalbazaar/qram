@@ -1,5 +1,11 @@
 # qram ChangeLog
 
+## 0.3.0 - 2019-08-xx
+
+### Changed
+- **BREAKING** Include full data hash in packet header.
+- Remove isomorphic-webcrypto dependency.
+
 ## 0.2.1 - 2019-08-22
 
 ### Fixed
