@@ -1,6 +1,6 @@
 {
   "name": "qram",
-  "version": "0.3.2",
+  "version": "0.3.3-0",
   "description": "Cram arbitrarily large data into multiple qr-codes",
   "license": "BSD-3-Clause",
   "main": "index.js",
