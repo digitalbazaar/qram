@@ -1,6 +1,6 @@
 # qram ChangeLog
 
-## 0.3.2 - 2019-08-xx
+## 0.3.2 - 2019-08-23
 
 ### Fixed
 - Fix webpack alias.
