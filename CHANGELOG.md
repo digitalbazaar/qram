@@ -1,6 +1,6 @@
 # qram ChangeLog
 
-## 0.3.0 - 2019-08-xx
+## 0.3.0 - 2019-08-23
 
 ### Changed
 - **BREAKING** Include full data hash in packet header.
