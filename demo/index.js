@@ -42,7 +42,9 @@ async function toggleCamera() {
 
   console.log('Camera turned on');
   _hide('canvas');
+  _hide('progress');
   _show('video');
+  _show('progress');
 
   const constraints = {
     video: {
@@ -75,14 +77,25 @@ async function present() {
   }
 
   _hide('video');
+  _hide('progress');
   _show('canvas');
+  _show('presenting');
 
-  const fps = parseInt(document.getElementById('fps').value, 10) || 30;
+  let fps = document.getElementById('fps').value;
   const blockSize = parseInt(document.getElementById('size').value, 10) || 400;
   const resistance = document.getElementById('resistance').value;
 
-  console.log(
-    `Presenting @ ${fps} frames/second, block size is ${blockSize} bytes...`);
+  if(fps !== 'auto') {
+    fps = parseInt(fps, 10) || 30;
+  } else {
+    // rough decent estimate: do `blockCount` frames per second
+    fps = Math.min(30, Math.ceil(state.size / blockSize));
+  }
+
+  const presentMsg =
+    `Presenting @ ${fps} frames/second, block size is ${blockSize} bytes...`;
+  document.getElementById('presenting').innerHTML = presentMsg;
+  console.log(presentMsg);
 
   state.runEncoder = true;
 
@@ -91,33 +104,53 @@ async function present() {
   crypto.getRandomValues(data);
 
   let version;
-  if(blockSize <= 100) {
+  const maxBlocksPerPacket = 50;
+  // const maxPacketSize = Encoder.getMaxPacketSize({
+  //   size: data.length,
+  //   blockSize,
+  //   maxBlocksPerPacket
+  // });
+  // console.log('maxPacketSize', maxPacketSize);
+
+  if(blockSize <= 10) {
+    if(resistance === 'H') {
+      version = 16;
+    } else {
+      version = 14;
+    }
+  } else if(blockSize <= 50) {
+    if(resistance === 'H') {
+      version = 18;
+    } else {
+      version = 16;
+    }
+  } else if(blockSize <= 100) {
+    if(resistance === 'H') {
+      version = 19;
+    } else {
+      version = 17;
+    }
+  } else if(blockSize <= 200) {
     if(resistance === 'H') {
       version = 22;
     } else {
       version = 19;
     }
-  } else if(blockSize <= 200) {
-    if(resistance === 'H') {
-      version = 24;
-    } else {
-      version = 20;
-    }
   } else if(blockSize <= 300) {
     if(resistance === 'H') {
-      version = 26;
+      version = 25;
     } else {
-      version = 23;
+      version = 22;
     }
   } else if(blockSize <= 400) {
     if(resistance === 'H') {
-      version = 31;
+      version = 29;
     } else {
-      version = 28;
+      version = 25;
     }
   }
 
-  const encoder = new Encoder({data, blockSize});
+  const encoder = new Encoder({data, blockSize, maxBlocksPerPacket});
   const timer = encoder.createTimer({fps});
   const canvas = document.getElementById('canvas');
   const stream = await encoder.createReadableStream();
@@ -144,6 +177,8 @@ async function receive() {
   }
 
   _clearProgress();
+  _hide('presenting');
+  _show('progress');
 
   let source;
   if(state.enableCamera) {
@@ -164,7 +199,9 @@ async function receive() {
 
   // use `requestAnimationFrame` so that scanning will not happen unless the
   // user has focused the window/tab displaying the qr-code stream
-  requestAnimationFrame(function enqueue() {
+  requestAnimationFrame(() => setTimeout(enqueue, 0));
+
+  function enqueue() {
     // use qram helper to get image data
     const imageData = getImageData({source});
 
@@ -175,7 +212,7 @@ async function receive() {
     });
     if(!result) {
       // no QR code found, try again on the next frame
-      return requestAnimationFrame(enqueue);
+      return requestAnimationFrame(() => setTimeout(enqueue, 0));
     }
 
     // enqueue the packet data for decoding, ignoring any non-cancel errors
@@ -187,7 +224,7 @@ async function receive() {
       .then(progress => {
         if(!progress.done) {
           _updateProgress({progress});
-          requestAnimationFrame(enqueue);
+          setTimeout(enqueue, 0);
         }
       })
       .catch(e => {
@@ -195,9 +232,9 @@ async function receive() {
           return;
         }
         console.error(e);
-        requestAnimationFrame(enqueue);
+        setTimeout(enqueue, 0);
       });
-  });
+  }
 
   try {
     // result found

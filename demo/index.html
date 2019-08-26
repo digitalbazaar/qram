@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 
   <!-- modules -->
-  <script src="https://unpkg.com/qram@0.3.2/dist/qram.min.js"></script>
+  <script src="https://unpkg.com/qram@0.3.3/dist/qram.min.js"></script>
   <!-- script src="../dist/qram.min.js"></script -->
   <script src="https://unpkg.com/base64url-universal@1.1.0/dist/base64url-universal.min.js"></script>
   <script src="https://unpkg.com/qrcode@1.4.1/build/qrcode.min.js"></script>
@@ -22,7 +22,7 @@
 <div style="padding: 5px">
   <h5>QR code Animation Method (QRAM) Demo</h5>
   <div>
-    <span>FPS: <input id="fps" type="number" maxlength="2" value="30"
+    <span>FPS: <input id="fps" type="text" maxlength="2" value="auto"
         style="width: 60px"></input></span>
     <span>BLOCK SIZE: <input id="size" type="number" value="400"
         style="width: 80px"></input></span>
@@ -49,7 +49,8 @@
       autoplay
       style="border: 1px solid #333; width: 500px; height: 500px; display: none"></video>
   </div>
-  <div>
+  <h6 id="presenting"></h6>
+  <div id="progress">
     <h6>Progress</h6>
     <div id="packets"></div>
     <div id="blocks"></div>
