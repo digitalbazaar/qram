@@ -6,7 +6,7 @@
 import {MH_SHA_256, sha256} from './hash.js';
 
 const VERSION = 0x01;
-const MIN_PACKET_SIZE = 86; // (1 + 4 + 4 + 4 + 34 + 34 + 4 + 1)
+const MIN_PACKET_SIZE = 82; // (1 + 2 + 4 + 2 + 34 + 34 + 4 + 1)
 const SHA_256_LENGTH = 32;
 
 export class Packet {
@@ -83,7 +83,7 @@ export class Packet {
     }
 
     // determine total packet size
-    const headerSize = this._getHeaderSize({indexCount: indexes.length});
+    const headerSize = this.getHeaderSize({indexCount: indexes.length});
     const packetSize = headerSize + blockSize;
 
     const data = new Uint8Array(packetSize);
@@ -149,14 +149,14 @@ export class Packet {
     return new Packet({header, payload, data});
   }
 
-  static _getHeaderSize({digestSize = SHA_256_LENGTH, indexCount}) {
+  static getHeaderSize({digestSize = SHA_256_LENGTH, indexCount}) {
     // TODO: change to CBOR serialization
     const headerSize =
       1 + // 1 byte version 0x01
-      4 + // header size
-      4 + // total size of the data
-      4 + // uint32 # of blocks in the packet
-      indexCount * 4 + // uint32 for each block index, in order
+      2 + // uint16 header size
+      4 + // uint32 total size of the data
+      2 + // uint16 # of blocks in the packet
+      indexCount * 2 + // uint16 for each block index, in order
       (2 + digestSize) + // multihash-encoded *packet* digest
       (2 + digestSize) + // multihash-encoded *full data* digest
       4; // uint32 of blockSize
@@ -169,11 +169,11 @@ export class Packet {
     const dv = new DataView(hData.buffer, hData.byteOffset, hData.length);
     let offset = 0;
     hData[offset] = header.version;
-    dv.setUint32(offset += 1, header.size);
-    dv.setUint32(offset += 4, header.totalSize);
-    dv.setUint32(offset += 4, header.blockCount);
-    header.indexes.forEach(i => dv.setUint32(offset += 4, i));
-    hData.set(header.packetDigest, offset += 4);
+    dv.setUint16(offset += 1, header.size);
+    dv.setUint32(offset += 2, header.totalSize);
+    dv.setUint16(offset += 4, header.blockCount);
+    header.indexes.forEach(i => dv.setUint16(offset += 2, i));
+    hData.set(header.packetDigest, offset += 2);
     hData.set(header.digest, offset += header.packetDigest.length);
     dv.setUint32(offset += header.digest.length, header.blockSize);
   }
@@ -190,14 +190,14 @@ export class Packet {
 
     const header = {version: VERSION};
     const dv = new DataView(data.buffer, data.byteOffet, data.length);
-    header.size = dv.getUint32(offset += 1);
-    header.totalSize = dv.getUint32(offset += 4);
-    header.blockCount = dv.getUint32(offset += 4);
+    header.size = dv.getUint16(offset += 1);
+    header.totalSize = dv.getUint32(offset += 2);
+    header.blockCount = dv.getUint16(offset += 4);
     header.indexes = new Array(header.blockCount);
     for(let i = 0; i < header.blockCount; ++i) {
-      header.indexes[i] = dv.getUint32(offset += 4);
+      header.indexes[i] = dv.getUint16(offset += 2);
     }
-    let mh1 = dv.getUint8(offset += 4);
+    let mh1 = dv.getUint8(offset += 2);
     let mh2 = dv.getUint8(offset += 1);
     if(!(mh1 === MH_SHA_256 && mh2 === SHA_256_LENGTH)) {
       throw Error(`Unsupported multihash codec "${mh1}".`);

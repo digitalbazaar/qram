@@ -1,5 +1,14 @@
 # qram ChangeLog
 
+## 0.3.3 - 2019-08-xx
+
+### Changed
+- Decrease minimum header size.
+
+### Added
+- Add option to limit max blocks per header.
+- Add `Encoder.getMaxPacketSize`.
+
 ## 0.3.2 - 2019-08-23
 
 ### Fixed

@@ -10,7 +10,9 @@ import {Timer} from './Timer.js';
 import {sha256} from './hash.js';
 
 export class Encoder {
-  constructor({data, blockSize, failureProbability} = {}) {
+  constructor({
+    data, blockSize, failureProbability, maxBlocksPerPacket = 50
+  } = {}) {
     if(!(data instanceof Uint8Array || data instanceof Uint8ClampedArray)) {
       throw new TypeError('"data" must be a Uint8Array or Uint8ClampedArray.');
     }
@@ -21,6 +23,7 @@ export class Encoder {
     this.blockCount = Math.ceil(this.data.length / blockSize);
     this.blocks = new Array(this.blockCount);
     this.random = new RandomDegree({N: this.blockCount, failureProbability});
+    this.maxBlocksPerPacket = maxBlocksPerPacket;
   }
 
   createTimer({fps} = {}) {
@@ -41,9 +44,20 @@ export class Encoder {
     });
   }
 
+  static getMaxPacketSize({size, blockSize, maxBlocksPerPacket}) {
+    const blockCount = Math.ceil(size / blockSize);
+    const indexCount = maxBlocksPerPacket ? maxBlocksPerPacket : blockCount;
+    return Packet.getHeaderSize({indexCount});
+  }
+
   async _nextPacket() {
-    const {blockCount, blockSize, data, digest} = this;
-    const degree = this.random.next();
+    const {blockCount, blockSize, data, digest, maxBlocksPerPacket} = this;
+    let degree = this.random.next();
+    if(maxBlocksPerPacket && degree > maxBlocksPerPacket) {
+      // limit # of blocks per packet, folding all probabilities for
+      // many-block-packets into packets of max size
+      degree = maxBlocksPerPacket;
+    }
     const indexes = [];
     for(let i = 0; i < degree; ++i) {
       let x;
