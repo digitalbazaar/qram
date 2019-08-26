@@ -1,6 +1,6 @@
 # qram ChangeLog
 
-## 0.3.3 - 2019-08-xx
+## 0.3.3 - 2019-08-26
 
 ### Changed
 - Decrease minimum header size.
