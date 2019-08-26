@@ -90,9 +90,31 @@ async function present() {
   const data = new Uint8Array(state.size);
   crypto.getRandomValues(data);
 
-  let version = 28;
-  if(blockSize > 400) {
-    version = undefined;
+  let version;
+  if(blockSize <= 100) {
+    if(resistance === 'H') {
+      version = 22;
+    } else {
+      version = 19;
+    }
+  } else if(blockSize <= 200) {
+    if(resistance === 'H') {
+      version = 24;
+    } else {
+      version = 20;
+    }
+  } else if(blockSize <= 300) {
+    if(resistance === 'H') {
+      version = 26;
+    } else {
+      version = 23;
+    }
+  } else if(blockSize <= 400) {
+    if(resistance === 'H') {
+      version = 31;
+    } else {
+      version = 28;
+    }
   }
 
   const encoder = new Encoder({data, blockSize});
