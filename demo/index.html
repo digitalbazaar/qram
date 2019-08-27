@@ -16,6 +16,21 @@
   <script src="https://unpkg.com/base64url-universal@1.1.0/dist/base64url-universal.min.js"></script>
   <script src="https://unpkg.com/qrcode@1.4.1/build/qrcode.min.js"></script>
   <script src="https://unpkg.com/jsqr@1.2.0/dist/jsQR.js"></script>
+  <style>
+    .blocksmap span {
+      display: inline-block;
+      float: left;
+    }
+    .blocksmap span:not(:last-child) {
+      margin-right: 1px;
+    }
+    .blocksmap span.missing {
+      background: red
+    }
+    .blocksmap span.found {
+      background: green
+    }
+  </style>
 </head>
 <body>
 
@@ -54,7 +69,8 @@
     <h6>Progress</h6>
     <div id="packets"></div>
     <div id="blocks"></div>
-    <div id="finish"></div>
+    <div id="blocksmap" class="blocksmap" style="width: 500px"></div>
+    <div id="finish" style="clear: both"></div>
   </div>
 </div>
 

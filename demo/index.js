@@ -257,15 +257,27 @@ async function receive() {
 function _updateProgress({progress}) {
   console.log('Progress', progress);
   const {
-    receivedPackets: packetCount,
-    receivedBlocks: blocks,
+    blocks,
+    receivedPackets,
+    receivedBlocks,
     totalBlocks
   } = progress;
-  console.log(`Decoded ${blocks}/${totalBlocks} blocks`);
+  console.log(`Decoded ${receivedBlocks}/${totalBlocks} blocks`);
   const packetsElement = document.getElementById('packets');
-  packetsElement.innerHTML = `Received ${packetCount} packets`;
+  packetsElement.innerHTML = `Received ${receivedPackets} packets`;
   const blocksElement = document.getElementById('blocks');
-  blocksElement.innerHTML = `Decoded ${blocks}/${totalBlocks} blocks`;
+  blocksElement.innerHTML = `Decoded ${receivedBlocks}/${totalBlocks} blocks`;
+  const blocksMapElement = document.getElementById('blocksmap');
+  let blocksMapHTML = '';
+  // block width without margin rounded down
+  const blockWidth =
+    Math.floor((500 - ((totalBlocks - 1) * 1/*px*/)) / totalBlocks);
+  for(let i = 0; i < totalBlocks; ++i) {
+    const cl = blocks.has(i) ? 'found' : 'missing';
+    blocksMapHTML +=
+      `<span class="${cl}" style="width: ${blockWidth}px">&nbsp;</span>\n`;
+  }
+  blocksMapElement.innerHTML = blocksMapHTML;
 }
 
 function _finish({data, time}) {
