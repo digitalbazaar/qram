@@ -47,6 +47,7 @@ async function toggleCamera() {
   _show('progress');
 
   const constraints = {
+    audio: false,
     video: {
       width: {min: 500},
       height: {min: 500},
