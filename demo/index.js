@@ -22,7 +22,7 @@ const state = {
   decoder: null,
   enableCamera: false,
   runEncoder: false,
-  size: 1024 * 4,
+  size: 1024,
 };
 
 async function toggleCamera() {
@@ -82,26 +82,35 @@ async function present() {
   _show('canvas');
   _show('presenting');
 
+  const size = parseInt(document.getElementById('size').value, 10) || 1024;
+  const blockSize = parseInt(
+    document.getElementById('block-size').value, 10) || 400;
   let fps = document.getElementById('fps').value;
-  const blockSize = parseInt(document.getElementById('size').value, 10) || 400;
   const resistance = document.getElementById('resistance').value;
 
   if(fps !== 'auto') {
-    fps = parseInt(fps, 10) || 30;
+    fps = parseInt(fps, 10) || 15;
   } else {
     // rough decent estimate: do `blockCount` frames per second
-    fps = Math.min(30, Math.ceil(state.size / blockSize));
+    fps = Math.min(30, Math.ceil(size / blockSize));
   }
 
+  let sizeMsg;
+  if(size < 1024) {
+    sizeMsg = `${size} bytes`;
+  } else {
+    sizeMsg = `${Math.floor(size / 1024)}k`;
+  }
   const presentMsg =
-    `Presenting @ ${fps} frames/second, block size is ${blockSize} bytes...`;
+    `Presenting ${sizeMsg} @ ${fps} frames/second, block size is ` +
+    `${blockSize} bytes...`;
   document.getElementById('presenting').innerHTML = presentMsg;
   console.log(presentMsg);
 
   state.runEncoder = true;
 
   // generate fake data for presentation
-  const data = new Uint8Array(state.size);
+  const data = new Uint8Array(size);
   crypto.getRandomValues(data);
 
   let version;

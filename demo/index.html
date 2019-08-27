@@ -37,10 +37,20 @@
 <div style="padding: 5px">
   <h5>QR code Animation Method (QRAM) Demo</h5>
   <div>
-    <span>FPS: <input id="fps" type="text" maxlength="2" value="auto"
-        style="width: 60px"></input></span>
-    <span>BLOCK SIZE: <input id="size" type="number" value="400"
+    <span>DATA SIZE:
+      <select id="size" style="width: 80px; display: inline-block">
+        <option value="4096">4k</option>
+        <option value="1024" selected>1k</option>
+        <option value="512">512b</option>
+        <option value="256">256b</option>
+      </select>
+    </span>
+    <span>BLOCK SIZE: <input id="block-size" type="number" value="400"
         style="width: 80px"></input></span>
+  </div>
+  <div>
+    <span>FPS: <input id="fps" type="text" maxlength="2" value="15"
+        style="width: 60px"></input></span>
     <span>ERROR RES.:
       <select id="resistance" style="width: 80px; display: inline-block">
         <option value="H">30%</option>
