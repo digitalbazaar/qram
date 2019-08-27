@@ -1,5 +1,10 @@
 # qram ChangeLog
 
+## 0.3.4 - 2019-08-27
+
+### Added
+- Expose blocks map in progress event.
+
 ## 0.3.3 - 2019-08-26
 
 ### Changed
