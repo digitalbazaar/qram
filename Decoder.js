@@ -39,6 +39,7 @@ export class Decoder {
       const {totalSize, blockSize, digest} = header;
       this.blockCount = Math.ceil(totalSize / blockSize);
       this.progress = {
+        blocks,
         totalSize, blockSize, digest,
         totalBlocks: this.blockCount,
         receivedBlocks: 0, receivedPackets: 0,
