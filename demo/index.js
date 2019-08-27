@@ -99,7 +99,7 @@ async function present() {
   if(size < 1024) {
     sizeMsg = `${size} bytes`;
   } else {
-    sizeMsg = `${Math.floor(size / 1024)}k`;
+    sizeMsg = `${Math.floor(size / 1024)} kiB`;
   }
   const presentMsg =
     `Presenting ${sizeMsg} @ ${fps} frames/second, block size is ` +
