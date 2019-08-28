@@ -171,7 +171,7 @@ async function present() {
     const text = base64url.encode(packet.data);
     await QRCode.toCanvas(canvas, text, {
       version,
-      mode: 'alphanumeric',
+      //mode: 'alphanumeric',
       errorCorrectionLevel: resistance
     });
     await timer.nextFrame();
@@ -210,24 +210,43 @@ async function receive() {
   // use `requestAnimationFrame` so that scanning will not happen unless the
   // user has focused the window/tab displaying the qr-code stream
   requestAnimationFrame(() => setTimeout(enqueue, 0));
+  let fails = 0;
 
   function enqueue() {
     // use qram helper to get image data
     const imageData = getImageData({source});
 
+    const x = performance.now();
+
     // use qr-code reader of choice to get Uint8Array or Uint8ClampedArray
     // representing the packet
-    const result = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: 'dontInvert'
-    });
+    // const result = jsQR(imageData.data, imageData.width, imageData.height, {
+    //   inversionAttempts: 'dontInvert'
+    // });
+
+    const idd = imageData.data;
+    const image = window.ZXing._resize(imageData.width, imageData.height);
+    for(let i = 0, j = 0; i < idd.length; i += 4, j++) {
+      window.ZXing.HEAPU8[image + j] = idd[i];
+    }
+    const err = window.ZXing._decode_qr_multi();
+    let result;
+    if(err === 0) {
+      result = window.ZXing._decode_results[0];
+    }
+
     if(!result) {
+      fails++;
       // no QR code found, try again on the next frame
       return requestAnimationFrame(() => setTimeout(enqueue, 0));
     }
 
     // enqueue the packet data for decoding, ignoring any non-cancel errors
     // and rescheduling until done or aborted
-    const {data: text} = result;
+    //const {data: text} = result;
+    const text = String.fromCharCode.apply(null, result[0]);
+    const y = performance.now();
+    console.log('scan time:', (y - x), ' ms');
     const data = base64url.decode(text);
     console.log(`Scanned ${data.length} bytes, parsing...`);
     decoder.enqueue(data)
@@ -235,6 +254,8 @@ async function receive() {
         if(!progress.done) {
           _updateProgress({progress});
           setTimeout(enqueue, 0);
+        } else {
+          console.log('total failed scans', fails);
         }
       })
       .catch(e => {

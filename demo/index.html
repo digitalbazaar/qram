@@ -98,7 +98,16 @@
   </div>
 </div -->
 
+<script>
+var Module = {
+  onRuntimeInitialized: function () {
+    window.ZXing = Module;
+    console.log('loaded wasm zxing');
+  }
+};
+</script>
 <script src="./index.js"></script>
+<script async src="./zxing.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </body>
 </html>
