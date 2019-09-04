@@ -21,6 +21,14 @@ export class Timer {
     this._update(Date.now());
   }
 
+  setRate(fps) {
+    if(!(Number.isInteger(fps) && fps > 0)) {
+      throw new TypeError('"fps" must be an integer > 0.');
+    }
+    this.fps = fps;
+    this.timePerFrame = 1000 / this.fps;
+  }
+
   async nextFrame() {
     const now = Date.now();
     if(now >= this.nextFrameTime) {

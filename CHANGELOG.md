@@ -1,5 +1,10 @@
 # qram ChangeLog
 
+## 0.3.5 - 2019-09-xx
+
+### Added
+- Add `setRate` API to Timer.
+
 ## 0.3.4 - 2019-08-27
 
 ### Added
