@@ -30,6 +30,13 @@ export class Decoder {
 
     const {blocks, packets} = this;
     const packet = await Packet.parse({data});
+    if(!this.decoding) {
+      // not decoding; abort
+      const error = new Error('Decoding canceled.');
+      error.name = 'AbortError';
+      throw error;
+    }
+
     const {header} = packet;
     if(this.progress) {
       // check to see if packet matches current decoding data

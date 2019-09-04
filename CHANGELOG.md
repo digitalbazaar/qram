@@ -1,5 +1,10 @@
 # qram ChangeLog
 
+## 0.3.7 - 2019-09-xx
+
+### Fixed
+- Handle case where decoding is canceled during packet parsing.
+
 ## 0.3.6 - 2019-09-04
 
 ### Changed
