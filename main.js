@@ -7,11 +7,18 @@ export {RandomDegree} from './RandomDegree.js';
 export {Decoder} from './Decoder.js';
 export {Encoder} from './Encoder.js';
 
+let _cachedCanvas = null;
+
 export function getImageData({source, canvas = null}) {
   if(!canvas && typeof document === 'undefined') {
     throw new Error('A "canvas" must be given if "document" is not defined.');
   }
-  canvas = canvas || document.createElement('canvas');
+  if(canvas === null) {
+    if(_cachedCanvas === null) {
+      _cachedCanvas = document.createElement('canvas');
+    }
+  }
+  canvas = canvas || _cachedCanvas;
   const width = source.width || source.videoWidth;
   const height = source.height || source.videoHeight;
   if(canvas.width !== width) {

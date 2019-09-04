@@ -1,5 +1,10 @@
 # qram ChangeLog
 
+## 0.3.6 - 2019-09-xx
+
+### Changed
+- Provide built in canvas cache for computing image data.
+
 ## 0.3.5 - 2019-09-04
 
 ### Added
