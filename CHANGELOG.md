@@ -1,6 +1,6 @@
 # qram ChangeLog
 
-## 0.3.9 - 2019-10-xx
+## 0.3.9 - 2019-10-03
 
 ### Fixed
 - Fix validation bug.
