@@ -90,7 +90,7 @@ export class Packet {
     if(typeof blockSize !== 'number') {
       throw new TypeError('"blockSize" must be a number.');
     }
-    if(digest instanceof Uint8Array) {
+    if(!(digest instanceof Uint8Array)) {
       throw new TypeError('"digest" must be a Uint8Array.');
     }
     if(digestAlgorithm.name !== 'SHA-256') {
