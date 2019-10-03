@@ -1,5 +1,10 @@
 # qram ChangeLog
 
+## 0.3.8 - 2019-10-xx
+
+### Added
+- Add type validation to `Packet.create`.
+
 ## 0.3.7 - 2019-09-04
 
 ### Fixed

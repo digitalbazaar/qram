@@ -78,6 +78,21 @@ export class Packet {
     totalSize, blocks, indexes, blockSize, digest,
     digestAlgorithm = {name: 'SHA-256'}
   }) {
+    if(typeof totalSize !== 'number') {
+      throw new TypeError('"totalSize" must be a number.');
+    }
+    if(!Array.isArray(blocks)) {
+      throw new TypeError('"blocks" must be an array.');
+    }
+    if(!Array.isArray(indexes)) {
+      throw new TypeError('"indexes" must be an array.');
+    }
+    if(typeof blockSize !== 'number') {
+      throw new TypeError('"blockSize" must be a number.');
+    }
+    if(digest instanceof Uint8Array) {
+      throw new TypeError('"digest" must be a Uint8Array.');
+    }
     if(digestAlgorithm.name !== 'SHA-256') {
       throw Error(`Unsupported digest algorithm "${digestAlgorithm.name}".`);
     }
